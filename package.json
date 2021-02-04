@@ -1,0 +1,24 @@
+{
+  "name": "hardhat-project",
+  "scripts": {
+    "compile": "npx hardhat compile",
+    "watch": "npx hardhat watch compilation"
+  },
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.1",
+    "@nomiclabs/hardhat-waffle": "^2.0.1",
+    "chai": "^4.2.0",
+    "ethereum-waffle": "^3.2.2",
+    "ethers": "^5.0.26",
+    "hardhat": "^2.0.8",
+    "ts-node": "^9.1.1",
+    "typescript": "^4.1.3"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^3.3.0",
+    "hardhat-typechain": "^0.3.4",
+    "hardhat-watcher": "^2.1.1",
+    "typechain": "^4.0.1",
+    "typechain-target-ethers-v5": "^5.0.1"
+  }
+}
