@@ -200,7 +200,7 @@ contract Oven {
     return userRoundOutput;
   }
 
-  function roundOutputBalanceOf(address _of) {
+  function outputBalanceOf(address _of) external view returns(uint256) {
     uint256 roundsCount = userRounds[_of].length;
 
     uint256 balance;
