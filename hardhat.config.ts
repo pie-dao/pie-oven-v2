@@ -23,6 +23,9 @@ task("accounts", "Prints the list of accounts", async (taskArgs, {ethers}) => {
  */
 const config:HardhatUserConfig = {
   solidity: "0.7.3",
+  typechain: {
+    target: "ethers-v5",
+  },
   watcher: {
     compilation: {
       tasks: ["compile"],

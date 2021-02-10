@@ -7,12 +7,17 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/Math.sol";
 
+import "./interfaces/IRecipe.sol"; 
+
+// TODO events
+
 contract Oven {
   using SafeERC20 for IERC20;
   using Math for uint256;
 
   IERC20 immutable inputToken;
   IERC20 immutable outputToken;
+  IRecipe immutable recipe;
 
   uint256 roundSize;
 
@@ -28,9 +33,17 @@ contract Oven {
 
   mapping(address => uint256[]) userRounds;
 
-  constructor(address _inputToken, address _outputToken) {
+  constructor(address _inputToken, address _outputToken, uint256 _roundSize, address _recipe) {
     inputToken = IERC20(_inputToken);
     outputToken = IERC20(_outputToken);
+    roundSize = _roundSize;
+    recipe = IRecipe(_recipe);
+
+    // create first empty round
+    rounds.push();
+
+    // approve input token
+    IERC20(_inputToken).safeApprove(_recipe, uint256(-1));
   }
 
   function deposit(uint256 _amount) external {
@@ -48,10 +61,12 @@ contract Oven {
     
     inputToken_.safeTransferFrom(msg.sender, address(this), _amount);
     
-    uint256 depositFirstRound = _amount.min(roundSize - round.totalDeposited);
+    uint256 depositFirstRound = _amount.min(roundSize_ - round.totalDeposited);
 
     round.totalDeposited += depositFirstRound;
     round.deposits[_to] += depositFirstRound;
+
+    userRounds[_to].push(rounds.length - 1);
 
     //If full amount was not deposited in a single tx
     if(depositFirstRound != _amount) {
@@ -117,10 +132,88 @@ contract Oven {
 
   }
 
-  
+  // TODO restrict calling address
+  function bake(bytes calldata _data, uint256[] memory _rounds) external {
+    // TODO consider if we should not mint rounds open to deposits or handle otherwise
+    // TODO fees
 
-  function bake(bytes32 data, uint256[] memory _rounds) external {
+    uint256 maxInputAmount;
 
+
+    //get input amount
+    for(uint256 i = 0; i < _rounds.length; i ++) {
+      Round storage round = rounds[_rounds[i]];
+      console.log("round total deposits", round.totalDeposited);
+      maxInputAmount += round.totalDeposited - round.totalBakedInput;
+    }
+  	
+    console.log("maxInputAMount");
+    console.log(maxInputAmount);
+
+    //bake
+    (uint256 inputUsed, uint256 outputAmount) = recipe.bake(address(inputToken), address(outputToken), maxInputAmount, _data);
+
+    uint256 inputUsedRemaining = inputUsed;
+
+    for(uint256 i = 0; i < _rounds.length; i ++) {
+      Round storage round = rounds[_rounds[i]];
+
+      uint256 roundInputBaked = (round.totalDeposited - round.totalBakedInput).min(inputUsedRemaining);
+
+      console.log(roundInputBaked);
+
+      uint256 roundOutputBaked = outputAmount * inputUsed / roundInputBaked;
+
+      round.totalBakedInput += roundInputBaked;
+      round.totalOutput += roundOutputBaked;
+
+      //sanity check
+      require(round.totalBakedInput <= round.totalDeposited, "Input sanity check failed");
+    }
+
+  }
+
+  function roundInputBalanceOf(uint256 _round, address _of) public view returns(uint256) {
+    return rounds[_round].deposits[_of];
+    // TODO subtract baked amount
+  }
+
+  function inputBalanceOf(address _of) public view returns(uint256) {
+    uint256 roundsCount = userRounds[_of].length;
+
+    uint256 balance;
+
+    for(uint256 i = 0; i < roundsCount; i ++) {
+      balance += roundInputBalanceOf(userRounds[_of][i], _of);
+    }
+
+    return balance;
+  }
+
+  function roundOutputBalanceOf(uint256 _round, address _of) public view returns(uint256) {
+    Round storage round = rounds[_round];
+    //amount of input of user baked
+    uint256 bakedInput = round.deposits[_of] * round.totalBakedInput / round.totalDeposited;
+    //amount of output the user is entitled to
+    uint256 userRoundOutput = round.totalOutput * bakedInput / round.totalBakedInput;
+
+    return userRoundOutput;
+  }
+
+  function roundOutputBalanceOf(address _of) {
+    uint256 roundsCount = userRounds[_of].length;
+
+    uint256 balance;
+
+    for(uint256 i = 0; i < roundsCount; i ++) {
+      balance += roundOutputBalanceOf(userRounds[_of][i], _of);
+    }
+
+    return balance;
+  }
+
+  function getRoundsCount() external view returns(uint256) {
+    return rounds.length;
   }
 
 }
