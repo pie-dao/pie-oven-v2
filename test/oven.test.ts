@@ -48,6 +48,10 @@ describe("Oven", function() {
         await timeTraveler.snapshot();
     });
 
+    beforeEach(async() => {
+        await timeTraveler.revertSnapshot();
+    });
+
     describe("deposit", async() => {
         it("Depositing when there are no previous rounds and not filling up the round should work", async() => {
             const depositAmount = parseEther("1");
@@ -70,11 +74,21 @@ describe("Oven", function() {
     });
 
     describe("bake", async() => {
-        it.only("baking a single round", async() => {
+        it("baking a single round", async() => {
             const depositAmount = parseEther("1");
             await oven.deposit(depositAmount);
-
+            
             await oven.bake("0x00", [0]);
+
+            const roundOutputBalance = await oven.roundOutputBalanceOf(0, account);
+            const outputBalance = await oven.outputBalanceOf(account);
+            const roundInputBalance = await oven.roundInputBalanceOf(0, account);
+            const inputBalance = await oven.inputBalanceOf(account);
+
+            expect(roundOutputBalance).to.eq(depositAmount);
+            expect(outputBalance).to.eq(depositAmount);
+            expect(roundInputBalance).to.eq(0);
+            expect(inputBalance).to.eq(0);  
         });
     });
 

@@ -174,8 +174,9 @@ contract Oven {
   }
 
   function roundInputBalanceOf(uint256 _round, address _of) public view returns(uint256) {
-    return rounds[_round].deposits[_of];
-    // TODO subtract baked amount
+    Round storage round = rounds[_round];
+    uint256 bakedInput = round.deposits[_of] * round.totalBakedInput / round.totalDeposited;
+    return round.deposits[_of] - bakedInput;
   }
 
   function inputBalanceOf(address _of) public view returns(uint256) {
