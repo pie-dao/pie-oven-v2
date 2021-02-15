@@ -51,6 +51,12 @@ contract Oven {
   }
 
   function depositTo(uint256 _amount, address _to) public {
+    IERC20 inputToken_ = inputToken;
+    inputToken_.safeTransferFrom(msg.sender, address(this), _amount);
+    _depositTo(_amount, _to);
+  }
+
+  function _depositTo(uint256 _amount, address _to) internal {
     Round storage round = rounds[rounds.length - 1];
 
     uint256 roundSize_ = roundSize; //gas saving
@@ -58,8 +64,6 @@ contract Oven {
     require(_amount < roundSize_, "Should not use oven for deposits larger than round size");
 
     IERC20 inputToken_ = inputToken; //gas saving
-    
-    inputToken_.safeTransferFrom(msg.sender, address(this), _amount);
     
     uint256 depositFirstRound = _amount.min(roundSize_ - round.totalDeposited);
 
@@ -193,6 +197,11 @@ contract Oven {
 
   function roundOutputBalanceOf(uint256 _round, address _of) public view returns(uint256) {
     Round storage round = rounds[_round];
+
+    if(round.totalBakedInput == 0) {
+      return 0;
+    }
+
     //amount of input of user baked
     uint256 bakedInput = round.deposits[_of] * round.totalBakedInput / round.totalDeposited;
     //amount of output the user is entitled to
