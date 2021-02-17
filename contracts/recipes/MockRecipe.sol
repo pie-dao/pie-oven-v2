@@ -5,7 +5,7 @@ import "../interfaces/IRecipe.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "../mocks/MockToken.sol";
 
-contract MockRecipe {
+contract MockRecipe is IRecipe {
     using SafeERC20 for IERC20;
 
     uint256 conversionRate = 1 ether; // price is one to one by default
@@ -16,7 +16,7 @@ contract MockRecipe {
         address _outputToken,
         uint256 _maxInput,
         bytes memory _data
-    ) external returns(uint256 inputAmountUsed, uint256 outputAmount) {
+    ) external override returns(uint256 inputAmountUsed, uint256 outputAmount) {
         uint256 inputAmountUsed = _maxInput * percentageBaked / 1 ether;
         uint256 outputAmount = inputAmountUsed * conversionRate / 1 ether;
 

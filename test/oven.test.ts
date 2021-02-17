@@ -92,4 +92,23 @@ describe("Oven", function() {
         });
     });
 
+    describe("withdraw", async() => {
+        it.only("Simple withdraw when fully baked", async() => {
+            const depositAmount = parseEther("1");
+            await oven.deposit(depositAmount);
+
+            await oven.bake("0x00", [0]);
+
+            oven.withdraw(constants.MaxUint256);
+            
+            const outputBalance = await oven.outputBalanceOf(account);
+            const roundOutputBalance = await oven.roundOutputBalanceOf(0, account);
+            const outputTokenBalance = await outputToken.balanceOf(account);
+
+            expect(outputBalance).to.eq(0);
+            expect(roundOutputBalance).to.eq(0);
+            expect(outputTokenBalance).to.eq(depositAmount);
+        });
+    });
+
 });
