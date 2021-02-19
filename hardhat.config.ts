@@ -23,6 +23,12 @@ task("accounts", "Prints the list of accounts", async (taskArgs, {ethers}) => {
  */
 const config:HardhatUserConfig = {
   solidity: "0.7.3",
+  networks: {
+    fork: {
+      url: `http://127.0.0.1:8545/`,
+      timeout: 200000
+    }
+  },
   typechain: {
     target: "ethers-v5",
   },
