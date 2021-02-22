@@ -248,7 +248,7 @@ contract UniPieRecipe is IRecipe {
         );
     }
 
-    function encodeData(uint256 _outputAmount) external pure returns(bytes memory){
+    function encodeData(uint256 _outputAmount) external pure returns(bytes memory) {
         return abi.encode((_outputAmount));
     }
 }
