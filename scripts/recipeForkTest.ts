@@ -8,6 +8,7 @@ import { UniPieRecipe__factory } from "../typechain/factories/UniPieRecipe__fact
 const WETH = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 // const YPIE = "0x17525e4f4af59fbc29551bc4ece6ab60ed49ce31";
 const YPIE = "0xe4f726adc8e89c6a6017f01eada77865db22da14"; //actually BCP
+// const YPIE = "0x8d1ce361eb68e9e05573443c407d4a3bed23b033"; //actually DEFI++
 const DAI = "0x6b175474e89094c44da98b954eedeac495271d0f";
 
 const FROM = "0x1Db3439a222C519ab44bb1144fC28167b4Fa6EE6";

@@ -9,6 +9,7 @@ import "../interfaces/ILendingLogic.sol";
 import "../interfaces/IPieRegistry.sol";
 import "../interfaces/IPie.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+// import "hardhat/console.sol";
 
 
 contract UniPieRecipe is IRecipe {
@@ -66,6 +67,8 @@ contract UniPieRecipe is IRecipe {
     }
 
     function swap(address _inputToken, address _outputToken, uint256 _outputAmount) internal {
+        // console.log("Buying", _outputToken, "with", _inputToken);
+
         if(_inputToken == _outputToken) {
             return;
         }
@@ -79,8 +82,8 @@ contract UniPieRecipe is IRecipe {
         }
 
         if(pieRegistry.inRegistry(_outputToken)) {
+            // console.log("Swapping to PIE", _outputToken);
             swapPie(_outputToken, _outputAmount);
-            IERC20(_outputToken).safeTransfer(msg.sender, _outputAmount);
             return;
         }
 
