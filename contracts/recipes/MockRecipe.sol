@@ -11,6 +11,10 @@ contract MockRecipe is IRecipe {
     uint256 conversionRate = 1 ether; // price is one to one by default
     uint256 percentageBaked = 1 ether; // by default 100% gets baked
 
+    function setPercentageBaked(uint256 _percentageBaked) external {
+        percentageBaked = _percentageBaked;
+    }
+
     function bake(
         address _inputToken,
         address _outputToken,

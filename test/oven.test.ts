@@ -13,6 +13,7 @@ import { MockRecipe, MockRecipe__factory } from "../typechain";
 describe("Oven", function() {
     let signers: SignerWithAddress[];
     let account: string;
+    let account2: string;
     let timeTraveler: TimeTraveler;
     let oven: Oven;
     let inputToken: MockToken;
@@ -25,6 +26,7 @@ describe("Oven", function() {
     before(async() => {
         signers = await ethers.getSigners();
         account = signers[0].address;
+        account2 = signers[1].address;
         timeTraveler = new TimeTraveler(network.provider);
 
         const mockTokenFactory = new MockToken__factory(signers[0])
@@ -32,6 +34,7 @@ describe("Oven", function() {
         //deploy input token
         inputToken = await mockTokenFactory.deploy("input", "input");
         await inputToken.mint(account, inputMintAmount);
+        await inputToken.mint(account2, inputMintAmount);
 
         //deploy output token
         outputToken = await mockTokenFactory.deploy("output", "output");
@@ -44,6 +47,7 @@ describe("Oven", function() {
 
         // approvals
         await inputToken.approve(oven.address, constants.MaxUint256);
+        await inputToken.connect(signers[1]).approve(oven.address, constants.MaxUint256);
 
         await timeTraveler.snapshot();
     });
@@ -71,6 +75,81 @@ describe("Oven", function() {
             expect(ovenInputTokenBalance).to.eq(depositAmount);
             expect(roundsCount).to.eq(1);
         });
+
+        it("Depositing multiple times into a single round should work", async() => {
+            const deposit1Amount = parseEther("1");
+            const deposit2Amount = parseEther("3");
+            const totalDeposit = deposit1Amount.add(deposit2Amount);
+
+            const inputBalanceBefore = await inputToken.balanceOf(account);
+            await oven.deposit(deposit1Amount);
+            await oven.deposit(deposit2Amount);
+            const inputBalanceAfter = await inputToken.balanceOf(account);
+            
+            const ovenUserInputBalance = await oven.inputBalanceOf(account);
+            const ovenUserRoundInputBalance = await oven.roundInputBalanceOf(0, account);
+            const ovenInputTokenBalance = await inputToken.balanceOf(oven.address);
+            const roundsCount = await oven.getRoundsCount();
+
+            expect(inputBalanceAfter).to.eq(inputBalanceBefore.sub(totalDeposit));
+            expect(ovenUserInputBalance).to.eq(totalDeposit);
+            expect(ovenUserRoundInputBalance).to.eq(totalDeposit);
+            expect(ovenInputTokenBalance).to.eq(totalDeposit);
+            expect(roundsCount).to.eq(1);
+        });
+
+        it("Depositing multiple times into a single round from different rounds should work", async() => {
+            const deposit1Amount = parseEther("1");
+            const deposit2Amount = parseEther("3");
+            const totalDeposit = deposit1Amount.add(deposit2Amount);
+
+            const ovenAccount2 = oven.connect(signers[1]);
+
+            const input1BalanceBefore = await inputToken.balanceOf(account);
+            const input2BalanceBefore = await inputToken.balanceOf(account2);
+            await oven.deposit(deposit1Amount);
+            await ovenAccount2.deposit(deposit2Amount);
+            const input1BalanceAfter = await inputToken.balanceOf(account);
+            const input2BalanceAfter = await inputToken.balanceOf(account2);
+
+            const ovenUser1InputBalance = await oven.inputBalanceOf(account);
+            const ovenUser2InputBalance = await oven.inputBalanceOf(account2);
+            const ovenUser1RoundInputBalance = await oven.roundInputBalanceOf(0, account);
+            const ovenUser2RoundInputBalance = await oven.roundInputBalanceOf(0, account2);
+            const ovenInputTokenBalance = await inputToken.balanceOf(oven.address);
+            const roundsCount = await oven.getRoundsCount();
+
+            expect(input1BalanceAfter).to.eq(input1BalanceBefore.sub(deposit1Amount));
+            expect(input2BalanceAfter).to.eq(input2BalanceBefore.sub(deposit2Amount));
+            expect(ovenUser1InputBalance).to.eq(deposit1Amount);
+            expect(ovenUser2InputBalance).to.eq(deposit2Amount);
+            expect(ovenUser1RoundInputBalance).to.eq(deposit1Amount);
+            expect(ovenUser2RoundInputBalance).to.eq(deposit2Amount);               
+            expect(ovenInputTokenBalance).to.eq(totalDeposit);
+            expect(roundsCount).to.eq(1);
+        });
+
+        it("Depositing a larger amount than the round size should generate additional rounds", async() => {
+            const depositAmount = roundSize.mul(2);
+
+            const inputBalanceBefore = await inputToken.balanceOf(account);
+            await oven.deposit(depositAmount);
+            const inputBalanceAfter = await inputToken.balanceOf(account);
+
+            const ovenUserInputBalance = await oven.inputBalanceOf(account);
+            const ovenUserRound0InputBalance = await oven.roundInputBalanceOf(0, account);
+            const ovenUserRound1InputBalance = await oven.roundInputBalanceOf(0, account);
+            const ovenInputTokenBalance = await inputToken.balanceOf(oven.address);
+            const roundsCount = await oven.getRoundsCount();
+
+            expect(inputBalanceAfter).to.eq(inputBalanceBefore.sub(depositAmount));
+            expect(ovenUserInputBalance).to.eq(depositAmount);
+            expect(ovenUserRound0InputBalance).to.eq(depositAmount.div(2));
+            expect(ovenUserRound0InputBalance).to.eq(depositAmount.div(2));
+            expect(ovenInputTokenBalance).to.eq(depositAmount);
+            expect(roundsCount).to.eq(2);
+        });
+
     });
 
     describe("bake", async() => {
@@ -90,10 +169,30 @@ describe("Oven", function() {
             expect(roundInputBalance).to.eq(0);
             expect(inputBalance).to.eq(0);  
         });
+        it("multi round baking", async() => {
+            const depositAmount = roundSize.mul(2);
+            await oven.deposit(depositAmount);
+
+            await oven.bake("0x00", [0, 1]);
+
+            const round0OutputBalance = await oven.roundOutputBalanceOf(0, account);
+            const round1OutputBalance = await oven.roundOutputBalanceOf(1, account);
+            const outputBalance = await oven.outputBalanceOf(account);
+            const round0InputBalance = await oven.roundInputBalanceOf(0, account);
+            const round1InputBalance = await oven.roundInputBalanceOf(1, account);
+            const inputBalance = await oven.inputBalanceOf(account);
+
+            expect(round0OutputBalance).to.eq(depositAmount.div(2));
+            expect(round1OutputBalance).to.eq(depositAmount.div(2));
+            expect(outputBalance).to.eq(depositAmount);
+            expect(round0InputBalance).to.eq(0);
+            expect(round1InputBalance).to.eq(0);
+            expect(inputBalance).to.eq(0);  
+        });
     });
 
     describe("withdraw", async() => {
-        it.only("Simple withdraw when fully baked", async() => {
+        it("Simple withdraw when fully baked", async() => {
             const depositAmount = parseEther("1");
             await oven.deposit(depositAmount);
 
@@ -108,6 +207,30 @@ describe("Oven", function() {
             expect(outputBalance).to.eq(0);
             expect(roundOutputBalance).to.eq(0);
             expect(outputTokenBalance).to.eq(depositAmount);
+        });
+        it.only("Simple withdraw when not baked at all", async() => {
+            const depositAmount = parseEther("1");
+            await oven.deposit(depositAmount);
+
+            const inputTokenBalanceBefore = await inputToken.balanceOf(account);
+            const outputTokenBalanceBefore = await outputToken.balanceOf(account);
+            
+            await oven.withdraw(constants.MaxUint256);
+
+            const inputBalanceAfter = await oven.inputBalanceOf(account);
+            const roundInputBalanceAfter = await oven.roundInputBalanceOf(0, account);
+            const inputTokenBalanceAfter = await inputToken.balanceOf(account);
+            const outputBalanceAfter = await oven.outputBalanceOf(account);
+            const roundOutputBalanceAfter = await oven.roundOutputBalanceOf(0, account);
+            const outputTokenBalanceAfter = await outputToken.balanceOf(account);
+
+            expect(inputBalanceAfter).to.eq(0);
+            expect(roundInputBalanceAfter).to.eq(0);
+            expect(inputTokenBalanceAfter).to.eq(inputTokenBalanceBefore.add(depositAmount));
+            expect(outputBalanceAfter).to.eq(0);
+            expect(roundOutputBalanceAfter).to.eq(0);
+            expect(outputTokenBalanceAfter).to.eq(outputTokenBalanceBefore);
+
         });
     });
 
