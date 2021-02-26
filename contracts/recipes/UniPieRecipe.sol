@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity ^0.7.0;
+pragma solidity 0.8.1;
 pragma experimental ABIEncoderV2;
 
 import "../interfaces/IRecipe.sol";
@@ -8,7 +8,7 @@ import "../interfaces/ILendingRegistry.sol";
 import "../interfaces/ILendingLogic.sol";
 import "../interfaces/IPieRegistry.sol";
 import "../interfaces/IPie.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 // import "hardhat/console.sol";
 
 
@@ -134,12 +134,12 @@ contract UniPieRecipe is IRecipe {
         // sushi has the best price, buy there
         if(dex == DexChoice.Sushi) {
             _inputToken.approve(address(sushiRouter), 0);
-            _inputToken.approve(address(sushiRouter), uint256(-1));
-            sushiRouter.swapTokensForExactTokens(_outputAmount, uint256(-1), route, address(this), block.timestamp + 1);
+            _inputToken.approve(address(sushiRouter), type(uint256).max);
+            sushiRouter.swapTokensForExactTokens(_outputAmount, type(uint256).max, route, address(this), block.timestamp + 1);
         } else {
             _inputToken.approve(address(uniRouter), 0);
-            _inputToken.approve(address(uniRouter), uint256(-1));
-            uniRouter.swapTokensForExactTokens(_outputAmount, uint256(-1), route, address(this), block.timestamp + 1);
+            _inputToken.approve(address(uniRouter), type(uint256).max);
+            uniRouter.swapTokensForExactTokens(_outputAmount, type(uint256).max, route, address(this), block.timestamp + 1);
         }
 
     }
@@ -223,7 +223,7 @@ contract UniPieRecipe is IRecipe {
         try _router.getAmountsIn(_outputAmount, getRoute(_inputToken, _outputToken)) returns(uint256[] memory amounts) {
             return amounts[0];
         } catch {
-            return uint256(-1);
+            return type(uint256).max;
         }
     }
 

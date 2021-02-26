@@ -1,18 +1,21 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity ^0.7.0;
+pragma solidity 0.8.1;
 
 import "hardhat/console.sol";
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol"; 
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/math/Math.sol";
-
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./interfaces/IRecipe.sol"; 
 
 
-contract Oven {
+contract Oven is AccessControl {
   using SafeERC20 for IERC20;
   using Math for uint256;
+
+  bytes32 constant public BAKER_ROLE = keccak256(abi.encode("BAKER_ROLE"));
+  uint256 constant public MAX_FEE = 10 * 10**16; //10%
 
   IERC20 immutable inputToken;
   IERC20 immutable outputToken;
@@ -28,12 +31,33 @@ contract Oven {
     uint256 totalOutput;
   }
 
+  struct ViewRound {
+    uint256 totalDeposited;
+    uint256 totalBakedInput;
+    uint256 totalOutput;
+  }
+
   Round[] public rounds;
 
   mapping(address => uint256[]) userRounds;
 
+  uint256 public fee = 0; //default 0% (10**16 == 1%)
+  address public feeReceiver;
+
   event Deposit(address indexed from, address indexed to, uint256 amount);
   event Withdraw(address indexed from, address indexed to, uint256 inputAmount, uint256 outputAmount);
+  event FeeReceiverUpdate(address indexed _previous, address indexed _new);
+  event FeeUpdate(uint256 previousFee, uint256 newFee);
+
+  modifier onlyBaker() {
+    require(hasRole(BAKER_ROLE, msg.sender), "NOT_BAKER");
+    _;
+  }
+
+  modifier onlyAdmin() {
+    require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "NOT_ADMIN");
+    _;
+  }
 
   constructor(address _inputToken, address _outputToken, uint256 _roundSize, address _recipe) {
     inputToken = IERC20(_inputToken);
@@ -45,7 +69,15 @@ contract Oven {
     rounds.push();
 
     // approve input token
-    IERC20(_inputToken).safeApprove(_recipe, uint256(-1));
+    IERC20(_inputToken).safeApprove(_recipe, type(uint256).max);
+
+    //grant default admin role
+    _setRoleAdmin(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE);
+    _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+
+    //grant baker role
+    _setRoleAdmin(BAKER_ROLE, DEFAULT_ADMIN_ROLE);
+    _setupRole(BAKER_ROLE, msg.sender);
   }
 
   function deposit(uint256 _amount) external {
@@ -60,8 +92,6 @@ contract Oven {
 
   function _depositTo(uint256 _amount, address _to) internal {
     uint256 roundSize_ = roundSize; //gas saving
-
-    IERC20 inputToken_ = inputToken; //gas saving
 
     uint256 currentRound = rounds.length - 1;
     uint256 deposited = 0;
@@ -131,7 +161,6 @@ contract Oven {
         userRoundOutput = round.totalOutput * bakedInput / round.totalBakedInput;
       }
       
-
       // unbaked input
       inputAmount += round.deposits[msg.sender] - bakedInput;
       console.log("unbaked input", inputAmount);
@@ -158,25 +187,31 @@ contract Oven {
     emit Withdraw(msg.sender, _to, inputAmount, outputAmount);
   }
 
-  // TODO restrict calling address
-  function bake(bytes calldata _data, uint256[] memory _rounds) external {
+  function bake(bytes calldata _data, uint256[] memory _rounds) external onlyBaker {
     // TODO consider if we should not mint rounds open to deposits or handle otherwise
-    // TODO fees
 
     uint256 maxInputAmount;
 
     //get input amount
     for(uint256 i = 0; i < _rounds.length; i ++) {
+      
+      // prevent round from being baked twice
+      if(i != 0) {
+        require(_rounds[i] > _rounds[i - 1], "Rounds out of order");
+      }
+
       Round storage round = rounds[_rounds[i]];
       // console.log("round total deposits", round.totalDeposited);
-      maxInputAmount += round.totalDeposited - round.totalBakedInput;
+      maxInputAmount += (round.totalDeposited - round.totalBakedInput);
     }
-  	
-    // console.log("maxInputAMount");
-    // console.log(maxInputAmount);
+
+    // subtract fee amount from input
+    uint256 maxInputAmountMinusFee = maxInputAmount * (10**18 - fee) / 10**18;
+
+    console.log("Input amound minus fee", maxInputAmountMinusFee);
 
     //bake
-    (uint256 inputUsed, uint256 outputAmount) = recipe.bake(address(inputToken), address(outputToken), maxInputAmount, _data);
+    (uint256 inputUsed, uint256 outputAmount) = recipe.bake(address(inputToken), address(outputToken), maxInputAmountMinusFee, _data);
 
     uint256 inputUsedRemaining = inputUsed;
 
@@ -185,11 +220,17 @@ contract Oven {
 
       uint256 roundInputBaked = (round.totalDeposited - round.totalBakedInput).min(inputUsedRemaining);
 
+      // skip round if it is already baked
+      if(roundInputBaked == 0) {
+        continue;
+      }
+
+  	  uint256 roundInputBakedWithFee = roundInputBaked * 10**18 / (10**18 - fee);
       // console.log(roundInputBaked);
 
       uint256 roundOutputBaked = outputAmount * roundInputBaked / inputUsed;
 
-      round.totalBakedInput += roundInputBaked;
+      round.totalBakedInput += roundInputBakedWithFee;
       inputUsedRemaining -= roundInputBaked;
       round.totalOutput += roundOutputBaked;
 
@@ -197,6 +238,23 @@ contract Oven {
       require(round.totalBakedInput <= round.totalDeposited, "Input sanity check failed");
     }
 
+    uint256 feeAmount = (inputUsed * 10**18 / (10**18 - fee)) - inputUsed;
+    address feeReceiver_ = feeReceiver; //gas saving
+    if(feeReceiver != address(0) && feeAmount != 0) {
+      inputToken.safeTransfer(feeReceiver, feeAmount);
+    }
+    
+  }
+
+  function setFee(uint256 _newFee) external onlyAdmin {
+    require(_newFee <= MAX_FEE, "This fee is too damn high :(");
+    emit FeeUpdate(fee, _newFee);
+    fee = _newFee;
+  }
+
+  function setFeeReceiver(address _feeReceiver) external onlyAdmin {
+    emit FeeReceiverUpdate(feeReceiver, _feeReceiver);
+    feeReceiver = _feeReceiver;
   }
 
   function roundInputBalanceOf(uint256 _round, address _of) public view returns(uint256) {
@@ -246,6 +304,10 @@ contract Oven {
     }
 
     return balance;
+  }
+
+  function getUserRoundsCount(address _user) external view returns(uint256) {
+    return userRounds[_user].length;
   }
 
   function getRoundsCount() external view returns(uint256) {

@@ -22,7 +22,7 @@ task("accounts", "Prints the list of accounts", async (taskArgs, {ethers}) => {
  * @type import('hardhat/config').HardhatUserConfig
  */
 const config:HardhatUserConfig = {
-  solidity: "0.7.3",
+  solidity: "0.8.1",
   networks: {
     fork: {
       url: `http://127.0.0.1:8545/`,

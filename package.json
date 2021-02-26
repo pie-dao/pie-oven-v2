@@ -20,7 +20,7 @@
     "typescript": "^4.1.3"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^3.3.0",
+    "@openzeppelin/contracts": "^4.0.0-beta.0",
     "@typechain/ethers-v5": "^5.0.0",
     "hardhat-typechain": "^0.3.4",
     "hardhat-watcher": "^2.1.1",

@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity ^0.7.0;
+pragma solidity 0.8.1;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
@@ -8,7 +8,7 @@ contract MockToken is ERC20 {
         string memory _name,
         string memory _symbol
     ) ERC20 (_name, _symbol) {
-        _setupDecimals(18);
+        // _setupDecimals(18);
     }
 
     function mint(address _to, uint256 _amount) external {
