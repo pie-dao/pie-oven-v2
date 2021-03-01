@@ -170,7 +170,11 @@ contract Oven is AccessControl {
       round.totalDeposited -= round.deposits[msg.sender] - bakedInput;
       round.deposits[msg.sender] = 0;
       round.totalBakedInput -= bakedInput;
-      round.totalOutput -= outputAmount;
+
+      // console.log("Round output", round.totalOutput);
+      // console.log("outputAmount", outputAmount);
+
+      round.totalOutput -= userRoundOutput;
 
       //pop of user round
       userRounds[msg.sender].pop();
