@@ -323,9 +323,33 @@ describe("Oven", function() {
             expect(outputTokenBalanceAfter).to.eq(outputTokenBalanceBefore.add(depositAmount));
         });
 
-        // it("Withdraw on partial bake", async() => {
-        //     const depositAmount = roundSize.mul(3);
-        // });
+        it("Withdraw on partial bake", async() => {
+            const depositAmount = parseEther("1");
+
+            const inputTokenBalanceBefore = await inputToken.balanceOf(account);
+            const outputTokenBalanceBefore = await outputToken.balanceOf(account);
+
+            await oven.deposit(depositAmount);
+            await recipe.setPercentageBaked(parseEther("0.5"));
+            await oven.bake("0x00", [0]);
+            await oven.withdraw(constants.MaxUint256);
+
+            const inputBalanceAfter = await oven.inputBalanceOf(account);
+            const roundInputBalanceAfter = await oven.roundInputBalanceOf(0, account);
+            const inputTokenBalanceAfter = await inputToken.balanceOf(account);
+            const outputBalanceAfter = await oven.outputBalanceOf(account);
+            const roundOutputBalanceAfter = await oven.roundOutputBalanceOf(0, account);
+            const outputTokenBalanceAfter = await outputToken.balanceOf(account);
+
+            const expectedAmount = depositAmount.div(2);
+
+            expect(inputBalanceAfter).to.eq(0);
+            expect(roundInputBalanceAfter).to.eq(0);
+            expect(inputTokenBalanceAfter).to.eq(inputTokenBalanceBefore.sub(expectedAmount));
+            expect(outputBalanceAfter).to.eq(0);
+            expect(roundOutputBalanceAfter).to.eq(0);
+            expect(outputTokenBalanceAfter).to.eq(outputTokenBalanceBefore.add(expectedAmount));
+        });
 
     });
 

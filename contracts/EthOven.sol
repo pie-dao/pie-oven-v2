@@ -14,6 +14,11 @@ contract EthOven is Oven {
         // Nothing, reusing parent constructor
     }
 
+    receive() external payable {
+        address(inputToken).call{value: msg.value}("");
+        _depositTo(msg.value, msg.sender);
+    }
+
     function depositEth() external payable {
         address(inputToken).call{value: msg.value}("");
         _depositTo(msg.value, msg.sender);

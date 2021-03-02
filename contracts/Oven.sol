@@ -244,8 +244,8 @@ contract Oven is AccessControl {
 
     uint256 feeAmount = (inputUsed * 10**18 / (10**18 - fee)) - inputUsed;
     address feeReceiver_ = feeReceiver; //gas saving
-    if(feeReceiver != address(0) && feeAmount != 0) {
-      inputToken.safeTransfer(feeReceiver, feeAmount);
+    if(feeReceiver_ != address(0) && feeAmount != 0) {
+      inputToken.safeTransfer(feeReceiver_, feeAmount);
     }
     
   }
