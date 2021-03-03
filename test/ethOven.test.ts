@@ -10,7 +10,7 @@ import { parseEther } from "ethers/lib/utils";
 import { constants } from "ethers";
 import { MockRecipe, MockRecipe__factory } from "../typechain";
 
-describe("Oven", function() {
+describe("EthOven", function() {
     let signers: SignerWithAddress[];
     let account: string;
     let account2: string;
@@ -66,11 +66,13 @@ describe("Oven", function() {
             const ovenUserRoundInputBalance = await oven.roundInputBalanceOf(0, account);
             const ovenInputTokenBalance = await inputToken.balanceOf(oven.address);
             const roundsCount = await oven.getRoundsCount();
+            const userRoundsCount = await oven.getUserRoundsCount(account);
 
             expect(ovenUserInputBalance).to.eq(depositAmount);
             expect(ovenUserRoundInputBalance).to.eq(depositAmount);
             expect(ovenInputTokenBalance).to.eq(depositAmount);
             expect(roundsCount).to.eq(1);
+            expect(userRoundsCount).to.eq(1);
         });
         it("Depositing ETH using the fallback should work", async() => {
             const depositAmount = parseEther("1");
@@ -81,11 +83,32 @@ describe("Oven", function() {
             const ovenUserRoundInputBalance = await oven.roundInputBalanceOf(0, account);
             const ovenInputTokenBalance = await inputToken.balanceOf(oven.address);
             const roundsCount = await oven.getRoundsCount();
+            const userRoundsCount = await oven.getUserRoundsCount(account);
 
             expect(ovenUserInputBalance).to.eq(depositAmount);
             expect(ovenUserRoundInputBalance).to.eq(depositAmount);
             expect(ovenInputTokenBalance).to.eq(depositAmount);
             expect(roundsCount).to.eq(1);
+            expect(userRoundsCount).to.eq(1);
+        });
+        it("Depositing ETH to another address should work", async() => {
+            const depositAmount = parseEther("1");
+  
+            const account2 = signers[1].address;
+
+            await oven.depositEthTo(account2, {value: depositAmount});
+
+            const ovenUserInputBalance = await oven.inputBalanceOf(account2);
+            const ovenUserRoundInputBalance = await oven.roundInputBalanceOf(0, account2);
+            const ovenInputTokenBalance = await inputToken.balanceOf(oven.address);
+            const roundsCount = await oven.getRoundsCount();
+            const userRoundsCount = await oven.getUserRoundsCount(account2);
+
+            expect(ovenUserInputBalance).to.eq(depositAmount);
+            expect(ovenUserRoundInputBalance).to.eq(depositAmount);
+            expect(ovenInputTokenBalance).to.eq(depositAmount);
+            expect(roundsCount).to.eq(1);
+            expect(userRoundsCount).to.eq(1);
         });
     });
 

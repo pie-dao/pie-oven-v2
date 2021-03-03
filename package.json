@@ -4,6 +4,7 @@
     "compile": "npx hardhat compile",
     "watch": "npx hardhat watch compilation",
     "test": "npx hardhat test",
+    "coverage": "npx hardhat coverage",
     "clean": "rm -rf ./artifacts && rm -rf ./typechain",
     "fork": "npx hardhat node --fork https://mainnet.infura.io/v3/ffa6c1dc83e44e6c9971d4706311d5ab",
     "typechain": "typechain --target ethers-v5 --outDir typechain './artifacts/**/*.json'"

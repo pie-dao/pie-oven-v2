@@ -68,12 +68,14 @@ describe("Oven", function() {
             const ovenUserRoundInputBalance = await oven.roundInputBalanceOf(0, account);
             const ovenInputTokenBalance = await inputToken.balanceOf(oven.address);
             const roundsCount = await oven.getRoundsCount();
+            const userRoundsCount = await oven.getUserRoundsCount(account);
 
             expect(inputBalanceAfter).to.eq(inputBalanceBefore.sub(depositAmount));
             expect(ovenUserInputBalance).to.eq(depositAmount);
             expect(ovenUserRoundInputBalance).to.eq(depositAmount);
             expect(ovenInputTokenBalance).to.eq(depositAmount);
             expect(roundsCount).to.eq(1);
+            expect(userRoundsCount).to.eq(1);
         });
 
         it("Depositing multiple times into a single round should work", async() => {
@@ -90,12 +92,14 @@ describe("Oven", function() {
             const ovenUserRoundInputBalance = await oven.roundInputBalanceOf(0, account);
             const ovenInputTokenBalance = await inputToken.balanceOf(oven.address);
             const roundsCount = await oven.getRoundsCount();
+            const userRoundsCount = await oven.getUserRoundsCount(account);
 
             expect(inputBalanceAfter).to.eq(inputBalanceBefore.sub(totalDeposit));
             expect(ovenUserInputBalance).to.eq(totalDeposit);
             expect(ovenUserRoundInputBalance).to.eq(totalDeposit);
             expect(ovenInputTokenBalance).to.eq(totalDeposit);
             expect(roundsCount).to.eq(1);
+            expect(userRoundsCount).to.eq(1);
         });
 
         it("Depositing multiple times into a single round from different rounds should work", async() => {
@@ -118,6 +122,7 @@ describe("Oven", function() {
             const ovenUser2RoundInputBalance = await oven.roundInputBalanceOf(0, account2);
             const ovenInputTokenBalance = await inputToken.balanceOf(oven.address);
             const roundsCount = await oven.getRoundsCount();
+            const userRoundsCount = await oven.getUserRoundsCount(account);
 
             expect(input1BalanceAfter).to.eq(input1BalanceBefore.sub(deposit1Amount));
             expect(input2BalanceAfter).to.eq(input2BalanceBefore.sub(deposit2Amount));
@@ -127,6 +132,7 @@ describe("Oven", function() {
             expect(ovenUser2RoundInputBalance).to.eq(deposit2Amount);               
             expect(ovenInputTokenBalance).to.eq(totalDeposit);
             expect(roundsCount).to.eq(1);
+            expect(userRoundsCount).to.eq(1);
         });
 
         it("Depositing a larger amount than the round size should generate additional rounds", async() => {
@@ -141,18 +147,27 @@ describe("Oven", function() {
             const ovenUserRound1InputBalance = await oven.roundInputBalanceOf(0, account);
             const ovenInputTokenBalance = await inputToken.balanceOf(oven.address);
             const roundsCount = await oven.getRoundsCount();
+            const userRoundsCount = await oven.getUserRoundsCount(account);
 
             expect(inputBalanceAfter).to.eq(inputBalanceBefore.sub(depositAmount));
             expect(ovenUserInputBalance).to.eq(depositAmount);
             expect(ovenUserRound0InputBalance).to.eq(depositAmount.div(2));
-            expect(ovenUserRound0InputBalance).to.eq(depositAmount.div(2));
+            expect(ovenUserRound1InputBalance).to.eq(depositAmount.div(2));
             expect(ovenInputTokenBalance).to.eq(depositAmount);
             expect(roundsCount).to.eq(2);
+            expect(userRoundsCount).to.eq(2);
         });
 
     });
 
     describe("bake", async() => {
+        it("only baker should be allowed to bake", async() => {
+            const depositAmount = parseEther("1");
+            await oven.deposit(depositAmount);
+            
+            await expect(oven.connect(signers[1]).bake("0x00", [0])).to.be.revertedWith("NOT_BAKER");
+        });
+
         it("baking a single round", async() => {
             const depositAmount = parseEther("1");
             await oven.deposit(depositAmount);
@@ -351,6 +366,99 @@ describe("Oven", function() {
             expect(outputTokenBalanceAfter).to.eq(outputTokenBalanceBefore.add(expectedAmount));
         });
 
+    });
+
+    describe("Fees", async() => {
+        it("Setting the fee should work", async() => {
+            const fee = parseEther("0.01");
+            await oven.setFee(fee);
+
+            const feeValue = await oven.fee();
+            expect(feeValue).to.eq(fee);
+        });
+
+        it("Setting the fee from a non admin should fail", async() => {
+            await expect(oven.connect(signers[1]).setFee(parseEther("0.01"))).to.be.revertedWith("NOT_ADMIN");
+        });
+
+        it("Setting the fee higher than the max should fail", async() => {
+            await expect(oven.setFee(parseEther("0.11"))).to.be.revertedWith("INVALID_FEE");
+        });
+
+        it("Setting the fee beniciary should work", async() => {
+            const account2 = signers[1].address;
+            await oven.setFeeReceiver(account2);
+            
+            const feeReceiver = await oven.feeReceiver();
+
+            expect(feeReceiver).to.eq(account2);
+        });
+
+        it("Charging the fee should work", async() => {
+            const fee = parseEther("0.1"); // 10% fee
+            const account2 = signers[2].address;
+            const depositAmount = parseEther("1");
+
+            await oven.setFeeReceiver(account2);
+            await oven.setFee(fee);
+
+            const inputTokenBalanceBefore = await inputToken.balanceOf(account);
+            
+            await oven.deposit(depositAmount);
+            await oven.bake("0x00", [0]);
+
+            const inputBalanceAfter = await oven.inputBalanceOf(account);
+            const roundInputBalanceAfter = await oven.roundInputBalanceOf(0, account);
+            const inputTokenBalanceAfter = await inputToken.balanceOf(account);
+            const outputBalanceAfter = await oven.outputBalanceOf(account);
+            const roundOutputBalanceAfter = await oven.roundOutputBalanceOf(0, account);
+            const outputTokenBalanceAfter = await outputToken.balanceOf(account);
+            const feeReceiverBalance = await inputToken.balanceOf(account2);
+            
+
+            const feeAmount = depositAmount.mul(fee).div(parseEther("1"));
+            const expectedAmount = depositAmount.sub(feeAmount);
+        
+            expect(inputBalanceAfter).to.eq(0);
+            expect(roundInputBalanceAfter).to.eq(0);
+            expect(inputTokenBalanceAfter).to.eq(inputTokenBalanceBefore.sub(depositAmount));
+            expect(outputBalanceAfter).to.eq(expectedAmount);
+            expect(roundOutputBalanceAfter).to.eq(expectedAmount);
+            expect(outputTokenBalanceAfter).to.eq(0);
+            expect(feeReceiverBalance).to.eq(feeAmount);
+        });
+
+        it("Charging the fee when no feeReceiver should send it to the baker", async() => {
+            const fee = parseEther("0.1"); // 10% fee
+            const account2 = signers[2].address;
+            const depositAmount = parseEther("1");
+
+            await oven.setFee(fee);
+
+            const inputTokenBalanceBefore = await inputToken.balanceOf(account);
+            
+            await oven.deposit(depositAmount);
+            await oven.bake("0x00", [0]);
+
+            const inputBalanceAfter = await oven.inputBalanceOf(account);
+            const roundInputBalanceAfter = await oven.roundInputBalanceOf(0, account);
+            const inputTokenBalanceAfter = await inputToken.balanceOf(account);
+            const outputBalanceAfter = await oven.outputBalanceOf(account);
+            const roundOutputBalanceAfter = await oven.roundOutputBalanceOf(0, account);
+            const outputTokenBalanceAfter = await outputToken.balanceOf(account);
+            const feeReceiverBalance = await inputToken.balanceOf(account2);
+            
+
+            const feeAmount = depositAmount.mul(fee).div(parseEther("1"));
+            const expectedAmount = depositAmount.sub(feeAmount);
+        
+            expect(inputBalanceAfter).to.eq(0);
+            expect(roundInputBalanceAfter).to.eq(0);
+            expect(inputTokenBalanceAfter).to.eq(inputTokenBalanceBefore.sub(depositAmount).add(feeAmount));
+            expect(outputBalanceAfter).to.eq(expectedAmount);
+            expect(roundOutputBalanceAfter).to.eq(expectedAmount);
+            expect(outputTokenBalanceAfter).to.eq(0);
+        });
     });
 
 });

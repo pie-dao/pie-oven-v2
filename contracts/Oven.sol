@@ -1,7 +1,6 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity 0.8.1;
 
-import "hardhat/console.sol";
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol"; 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -136,7 +135,6 @@ contract Oven is AccessControl {
   }
 
 
-  // Note: Both input and output are withdrawed at the same time to mittigate any accounting issues
   function withdrawTo(address _to, uint256 _roundsLimit) public {
     uint256 inputAmount;
     uint256 outputAmount;
@@ -163,16 +161,12 @@ contract Oven is AccessControl {
       
       // unbaked input
       inputAmount += round.deposits[msg.sender] - bakedInput;
-      console.log("unbaked input", inputAmount);
       //amount of output the user is entitled to
       outputAmount += userRoundOutput;
 
       round.totalDeposited -= round.deposits[msg.sender] - bakedInput;
       round.deposits[msg.sender] = 0;
       round.totalBakedInput -= bakedInput;
-
-      // console.log("Round output", round.totalOutput);
-      // console.log("outputAmount", outputAmount);
 
       round.totalOutput -= userRoundOutput;
 
@@ -192,8 +186,6 @@ contract Oven is AccessControl {
   }
 
   function bake(bytes calldata _data, uint256[] memory _rounds) external onlyBaker {
-    // TODO consider if we should not mint rounds open to deposits or handle otherwise
-
     uint256 maxInputAmount;
 
     //get input amount
@@ -205,14 +197,11 @@ contract Oven is AccessControl {
       }
 
       Round storage round = rounds[_rounds[i]];
-      // console.log("round total deposits", round.totalDeposited);
       maxInputAmount += (round.totalDeposited - round.totalBakedInput);
     }
 
     // subtract fee amount from input
     uint256 maxInputAmountMinusFee = maxInputAmount * (10**18 - fee) / 10**18;
-
-    console.log("Input amound minus fee", maxInputAmountMinusFee);
 
     //bake
     (uint256 inputUsed, uint256 outputAmount) = recipe.bake(address(inputToken), address(outputToken), maxInputAmountMinusFee, _data);
@@ -230,7 +219,6 @@ contract Oven is AccessControl {
       }
 
   	  uint256 roundInputBakedWithFee = roundInputBaked * 10**18 / (10**18 - fee);
-      // console.log(roundInputBaked);
 
       uint256 roundOutputBaked = outputAmount * roundInputBaked / inputUsed;
 
@@ -244,14 +232,19 @@ contract Oven is AccessControl {
 
     uint256 feeAmount = (inputUsed * 10**18 / (10**18 - fee)) - inputUsed;
     address feeReceiver_ = feeReceiver; //gas saving
-    if(feeReceiver_ != address(0) && feeAmount != 0) {
+    if(feeAmount != 0) {
+      
+      // if no fee receiver is set send it to the baker
+      if(feeReceiver == address(0)) {
+        feeReceiver_ = msg.sender;
+      }
       inputToken.safeTransfer(feeReceiver_, feeAmount);
     }
     
   }
 
   function setFee(uint256 _newFee) external onlyAdmin {
-    require(_newFee <= MAX_FEE, "This fee is too damn high :(");
+    require(_newFee <= MAX_FEE, "INVALID_FEE");
     emit FeeUpdate(fee, _newFee);
     fee = _newFee;
   }
