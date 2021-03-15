@@ -351,7 +351,7 @@ contract Oven is AccessControl {
   }
 
   function getRoundsRange(uint256 _from, uint256 _to) public view returns(ViewRound[] memory) {
-    ViewRound[] memory result = new ViewRound[](_to - _from);
+    ViewRound[] memory result = new ViewRound[](_to - _from + 1);
 
     for(uint256 i = _from; i <= _to; i ++) {
       Round storage round = rounds[i];

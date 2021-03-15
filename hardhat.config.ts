@@ -1,11 +1,15 @@
+require("dotenv").config();
+
 import { HardhatUserConfig, task } from "hardhat/config";
 import "@nomiclabs/hardhat-waffle";
 import "@nomiclabs/hardhat-ethers";
+import "@nomiclabs/hardhat-etherscan";
 import "hardhat-typechain";
 import "hardhat-watcher";
 import "solidity-coverage";
 import "hardhat-gas-reporter";
 
+import "./tasks/deploy";
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -29,6 +33,10 @@ const config:HardhatUserConfig = {
     fork: {
       url: `http://127.0.0.1:8545/`,
       timeout: 200000
+    },
+    bsc: {
+      url: `https://bsc-dataseed.binance.org/`,
+      accounts: [process.env.PRIVATE_KEY || ""],
     }
   },
   typechain: {
@@ -39,7 +47,7 @@ const config:HardhatUserConfig = {
       tasks: ["compile"],
     }
   },
-
+  etherscan: { apiKey: process.env.ETHERSCAN_KEY }
 };
 
 export default config;
