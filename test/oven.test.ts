@@ -1,13 +1,14 @@
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
 import TimeTraveler from "../utils/TimeTraveler";
-import { Oven__factory } from "../typechain/factories/Oven__factory";
+import { EthOven__factory } from "../typechain/factories/EthOven__factory";
 import { MockToken__factory } from "../typechain/factories/MockToken__factory";
 import { MockToken } from "../typechain/MockToken";
-import { Oven } from "../typechain/Oven";
+import { EthOven } from "../typechain/EthOven";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
+
 import { parseEther, parseUnits } from "ethers/lib/utils";
-import { constants } from "ethers";
+import { BigNumber, constants } from "ethers";
 import { MockRecipe, MockRecipe__factory } from "../typechain";
 
 describe("Oven", function() {
@@ -15,7 +16,7 @@ describe("Oven", function() {
     let account: string;
     let account2: string;
     let timeTraveler: TimeTraveler;
-    let oven: Oven;
+    let oven: EthOven;
     let inputToken: MockToken;
     let outputToken: MockToken;
     let recipe: MockRecipe;
@@ -43,7 +44,7 @@ describe("Oven", function() {
         recipe = await (new MockRecipe__factory(signers[0])).deploy();
 
         // TODO consider deploying diffrently if coverage does not work
-        oven = await (new Oven__factory(signers[0])).deploy(inputToken.address, outputToken.address, roundSize, recipe.address) as unknown as Oven;
+        oven = await (new EthOven__factory(signers[0])).deploy(inputToken.address, outputToken.address, roundSize, recipe.address) as unknown as EthOven;
 
         // approvals
         await inputToken.approve(oven.address, constants.MaxUint256);
@@ -58,15 +59,15 @@ describe("Oven", function() {
 
     describe("constructor", async() => {
         it("_inputToken zero address should fail", async() => {
-            const ovenFactory = new Oven__factory(signers[0]);
+            const ovenFactory = new EthOven__factory(signers[0]);
             await expect(ovenFactory.deploy(constants.AddressZero, outputToken.address, roundSize, recipe.address)).to.be.revertedWith("INPUT_TOKEN_ZERO");
         });
         it("_ouputToken zero address should fail", async() => {
-            const ovenFactory = new Oven__factory(signers[0]);
+            const ovenFactory = new EthOven__factory(signers[0]);
             await expect(ovenFactory.deploy(inputToken.address, constants.AddressZero, roundSize, recipe.address)).to.be.revertedWith("OUTPUT_TOKEN_ZERO");
         });
         it("_recipe zero address should fail", async() => {
-            const ovenFactory = new Oven__factory(signers[0]);
+            const ovenFactory = new EthOven__factory(signers[0]);
             await expect(ovenFactory.deploy(inputToken.address, outputToken.address, roundSize, constants.AddressZero)).to.be.revertedWith("RECIPE_ZERO");
         });
     });
@@ -512,6 +513,69 @@ describe("Oven", function() {
             expect(roundOutputBalanceAfter).to.eq(expectedAmount);
             expect(outputTokenBalanceAfter).to.eq(0);
         });
+    });
+
+    describe("Setters", async() => {
+        it("Setting the round size should work", async() => {
+            const targetRoundSize = parseEther("1000");
+
+            await oven.setRoundSize(targetRoundSize);
+            const roundSize = await oven.roundSize();
+
+            expect(roundSize).to.eq(targetRoundSize);
+        });
+
+        it("Setting the round size from a non admin should fail", async() => {
+            await expect(oven.connect(signers[1]).setRoundSize(parseEther("1000"))).to.be.revertedWith("NOT_ADMIN");
+        });
+
+        it("Setting the recipe should work", async() => {
+            const targetRecipe = constants.AddressZero;
+
+            await oven.setRecipe(targetRecipe);
+            const recipeValue = await oven.recipe();
+
+            expect(recipeValue).to.eq(recipeValue);
+        });
+
+        it("Setting the recipe from a non admin should fail", async() => {
+            await expect(oven.connect(signers[1]).setRecipe(constants.AddressZero)).to.be.revertedWith("NOT_ADMIN");
+        });
+    });
+
+    describe("Token Saving", async() => {
+        it("Saving tokens", async() => {
+            const depositAmount = parseEther("1");
+            await oven.deposit(depositAmount);
+
+            await oven.saveToken(inputToken.address, signers[2].address, depositAmount);
+
+            const ovenBalanceAfter = await inputToken.balanceOf(oven.address);
+            const toBalanceAfter = await inputToken.balanceOf(signers[2].address);
+
+            expect(ovenBalanceAfter).to.eq(0);
+            expect(toBalanceAfter).to.eq(depositAmount);
+        });
+
+        it("Saving tokens from a non admin should fail", async() => {
+            await expect(oven.connect(signers[1]).saveToken(inputToken.address, signers[1].address, parseEther("1"))).to.be.revertedWith("NOT_ADMIN");
+        });
+
+        it("Saving ETH should work", async() => {
+            const depositAmount = parseEther("1");
+            await signers[0].sendTransaction({to: oven.address, value: depositAmount});
+
+            const toBalanceBefore = await signers[0].provider?.getBalance(signers[2].address) as BigNumber;
+            await oven.saveEth(signers[2].address, depositAmount);
+            const toBalanceAfter = await signers[0].provider?.getBalance(signers[2].address);
+            
+            expect(toBalanceAfter).to.eq(toBalanceBefore.add(depositAmount));
+        });
+
+        it("Saving ETH from a non admin should fail", async() => {
+            await expect(oven.connect(signers[1]).saveEth(signers[0].address, parseEther("1"))).to.be.revertedWith("NOT_ADMIN");
+        });
+        
     });
 
 });

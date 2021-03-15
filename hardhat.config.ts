@@ -3,7 +3,8 @@ import "@nomiclabs/hardhat-waffle";
 import "@nomiclabs/hardhat-ethers";
 import "hardhat-typechain";
 import "hardhat-watcher";
-import "solidity-coverage"
+import "solidity-coverage";
+import "hardhat-gas-reporter";
 
 
 // This is a sample Hardhat task. To learn how to create your own go to
