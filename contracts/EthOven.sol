@@ -16,12 +16,12 @@ contract EthOven is Oven {
 
     receive() external payable {
         address(inputToken).call{value: msg.value}("");
-        _depositTo(msg.value, msg.sender);
+        _depositTo(msg.value, _msgSender());
     }
 
     function depositEth() external payable {
         address(inputToken).call{value: msg.value}("");
-        _depositTo(msg.value, msg.sender);
+        _depositTo(msg.value, _msgSender());
     }
 
     function depositEthTo(address _to) external payable {

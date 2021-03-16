@@ -9,10 +9,11 @@ import "../interfaces/ILendingLogic.sol";
 import "../interfaces/IPieRegistry.sol";
 import "../interfaces/IPie.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/Context.sol";
 // import "hardhat/console.sol";
 
 
-contract UniPieRecipe is IRecipe {
+contract UniPieRecipe is IRecipe, Context {
     using SafeERC20 for IERC20;
 
     IERC20 immutable WETH;
@@ -46,7 +47,7 @@ contract UniPieRecipe is IRecipe {
         IERC20 inputToken = IERC20(_inputToken);
         IERC20 outputToken = IERC20(_outputToken);
 
-        inputToken.safeTransferFrom(msg.sender, address(this), _maxInput);
+        inputToken.safeTransferFrom(_msgSender(), address(this), _maxInput);
 
         (uint256 mintAmount) = abi.decode(_data, (uint256));
 
@@ -54,12 +55,12 @@ contract UniPieRecipe is IRecipe {
 
         uint256 remainingInputBalance = inputToken.balanceOf(address(this));
         if(remainingInputBalance > 0) {
-            inputToken.transfer(msg.sender, remainingInputBalance);
+            inputToken.transfer(_msgSender(), remainingInputBalance);
         }
 
         outputAmount = outputToken.balanceOf(address(this));
 
-        outputToken.safeTransfer(msg.sender, outputAmount);
+        outputToken.safeTransfer(_msgSender(), outputAmount);
 
         inputAmountUsed = _maxInput - remainingInputBalance;
 

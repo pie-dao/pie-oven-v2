@@ -49,12 +49,12 @@ contract Oven is AccessControl {
   event FeeUpdate(uint256 previousFee, uint256 newFee);
 
   modifier onlyBaker() {
-    require(hasRole(BAKER_ROLE, msg.sender), "NOT_BAKER");
+    require(hasRole(BAKER_ROLE, _msgSender()), "NOT_BAKER");
     _;
   }
 
   modifier onlyAdmin() {
-    require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "NOT_ADMIN");
+    require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "NOT_ADMIN");
     _;
   }
 
@@ -72,20 +72,20 @@ contract Oven is AccessControl {
 
     //grant default admin role
     _setRoleAdmin(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE);
-    _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
 
     //grant baker role
     _setRoleAdmin(BAKER_ROLE, DEFAULT_ADMIN_ROLE);
-    _setupRole(BAKER_ROLE, msg.sender);
+    _setupRole(BAKER_ROLE, _msgSender());
   }
 
   function deposit(uint256 _amount) external {
-    depositTo(_amount, msg.sender);
+    depositTo(_amount, _msgSender());
   }
 
   function depositTo(uint256 _amount, address _to) public {
     IERC20 inputToken_ = inputToken;
-    inputToken_.safeTransferFrom(msg.sender, address(this), _amount);
+    inputToken_.safeTransferFrom(_msgSender(), address(this), _amount);
     _depositTo(_amount, _to);
   }
 
@@ -126,7 +126,7 @@ contract Oven is AccessControl {
       currentRound ++;
     }
 
-    emit Deposit(msg.sender, _to, _amount);
+    emit Deposit(_msgSender(), _to, _amount);
   }
 
   function pushUserRound(address _to, uint256 _roundId) internal {
@@ -137,7 +137,7 @@ contract Oven is AccessControl {
   }
 
   function withdraw(uint256 _roundsLimit) public {
-    withdrawTo(msg.sender, _roundsLimit);
+    withdrawTo(_msgSender(), _roundsLimit);
   }
 
 
@@ -145,7 +145,7 @@ contract Oven is AccessControl {
     uint256 inputAmount;
     uint256 outputAmount;
     
-    uint256 userRoundsLength = userRounds[msg.sender].length;
+    uint256 userRoundsLength = userRounds[_msgSender()].length;
     uint256 numRounds = userRoundsLength.min(_roundsLimit);
 
     for(uint256 i = 0; i < numRounds; i ++) {
@@ -155,7 +155,7 @@ contract Oven is AccessControl {
       Round storage round = rounds[roundIndex];
 
       //amount of input of user baked
-      uint256 bakedInput = round.deposits[msg.sender] * round.totalBakedInput / round.totalDeposited;
+      uint256 bakedInput = round.deposits[_msgSender()] * round.totalBakedInput / round.totalDeposited;
       //amount of output the user is entitled to
 
       uint256 userRoundOutput;
@@ -166,18 +166,18 @@ contract Oven is AccessControl {
       }
       
       // unbaked input
-      inputAmount += round.deposits[msg.sender] - bakedInput;
+      inputAmount += round.deposits[_msgSender()] - bakedInput;
       //amount of output the user is entitled to
       outputAmount += userRoundOutput;
 
-      round.totalDeposited -= round.deposits[msg.sender] - bakedInput;
-      round.deposits[msg.sender] = 0;
+      round.totalDeposited -= round.deposits[_msgSender()] - bakedInput;
+      round.deposits[_msgSender()] = 0;
       round.totalBakedInput -= bakedInput;
 
       round.totalOutput -= userRoundOutput;
 
       //pop of user round
-      userRounds[msg.sender].pop();
+      userRounds[_msgSender()].pop();
     }
 
     if(inputAmount != 0) {
@@ -192,7 +192,7 @@ contract Oven is AccessControl {
       outputToken.safeTransfer(_to, outputAmount);
     }
 
-    emit Withdraw(msg.sender, _to, inputAmount, outputAmount);
+    emit Withdraw(_msgSender(), _to, inputAmount, outputAmount);
   }
 
   function bake(bytes calldata _data, uint256[] memory _rounds) external onlyBaker {
@@ -246,7 +246,7 @@ contract Oven is AccessControl {
       
       // if no fee receiver is set send it to the baker
       if(feeReceiver == address(0)) {
-        feeReceiver_ = msg.sender;
+        feeReceiver_ = _msgSender();
       }
       inputToken.safeTransfer(feeReceiver_, feeAmount);
     }
