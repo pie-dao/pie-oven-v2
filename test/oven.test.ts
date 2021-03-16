@@ -56,6 +56,21 @@ describe("Oven", function() {
         await timeTraveler.revertSnapshot();
     });
 
+    describe("constructor", async() => {
+        it("_inputToken zero address should fail", async() => {
+            const ovenFactory = new Oven__factory(signers[0]);
+            await expect(ovenFactory.deploy(constants.AddressZero, outputToken.address, roundSize, recipe.address)).to.be.revertedWith("INPUT_TOKEN_ZERO");
+        });
+        it("_ouputToken zero address should fail", async() => {
+            const ovenFactory = new Oven__factory(signers[0]);
+            await expect(ovenFactory.deploy(inputToken.address, constants.AddressZero, roundSize, recipe.address)).to.be.revertedWith("OUTPUT_TOKEN_ZERO");
+        });
+        it("_recipe zero address should fail", async() => {
+            const ovenFactory = new Oven__factory(signers[0]);
+            await expect(ovenFactory.deploy(inputToken.address, outputToken.address, roundSize, constants.AddressZero)).to.be.revertedWith("RECIPE_ZERO");
+        });
+    });
+
     describe("deposit", async() => {
         it("Depositing when there are no previous rounds and not filling up the round should work", async() => {
             const depositAmount = parseEther("1");

@@ -30,7 +30,13 @@ contract UniPieRecipe is IRecipe, Context {
         address _sushiRouter,
         address _lendingRegistry,
         address _pieRegistry
-    ) {
+    ) { 
+        require(_weth != address(0), "WETH_ZERO");
+        require(_uniRouter != address(0), "UNI_ROUTER_ZERO");
+        require(_sushiRouter != address(0), "SUSHI_ROUTER_ZERO");
+        require(_lendingRegistry != address(0), "LENDING_MANAGER_ZERO");
+        require(_pieRegistry != address(0), "PIE_REGISTRY_ZERO");
+
         WETH = IERC20(_weth);
         uniRouter = IUniRouter(_uniRouter);
         sushiRouter = IUniRouter(_sushiRouter);

@@ -59,6 +59,10 @@ contract Oven is AccessControl {
   }
 
   constructor(address _inputToken, address _outputToken, uint256 _roundSize, address _recipe) {
+    require(_inputToken != address(0), "INPUT_TOKEN_ZERO");
+    require(_outputToken != address(0), "OUTPUT_TOKEN_ZERO");
+    require(_recipe != address(0), "RECIPE_ZERO");
+    
     inputToken = IERC20(_inputToken);
     outputToken = IERC20(_outputToken);
     roundSize = _roundSize;
