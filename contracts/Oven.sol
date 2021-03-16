@@ -101,6 +101,12 @@ contract Oven is AccessControl {
         rounds.push();
       }
 
+      //if the round is already partially baked create a new round
+      if(rounds[currentRound].totalBakedInput != 0) {
+        currentRound ++;
+        rounds.push();
+      }
+
       Round storage round = rounds[currentRound];
 
       uint256 roundDeposit = (_amount - deposited).min(roundSize_ - round.totalDeposited);

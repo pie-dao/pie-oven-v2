@@ -6,7 +6,7 @@ import { MockToken__factory } from "../typechain/factories/MockToken__factory";
 import { MockToken } from "../typechain/MockToken";
 import { Oven } from "../typechain/Oven";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
-import { parseEther } from "ethers/lib/utils";
+import { parseEther, parseUnits } from "ethers/lib/utils";
 import { constants } from "ethers";
 import { MockRecipe, MockRecipe__factory } from "../typechain";
 
@@ -158,6 +158,31 @@ describe("Oven", function() {
             expect(userRoundsCount).to.eq(2);
         });
 
+        it("Depositing when the current round is already partially baked should create a new round", async() => {
+            const depositAmount = parseEther("1");
+
+            await oven.deposit(depositAmount);
+            await oven.bake("0x00", [0]);
+            await oven.deposit(depositAmount);
+
+            const ovenUserInputBalance = await oven.inputBalanceOf(account);
+            const ovenUserRound0OutputBalance = await oven.roundOutputBalanceOf(0, account);
+            const ovenUserRound1OutputBalance = await oven.roundOutputBalanceOf(1, account);
+            const ovenUserRound0InputBalance = await oven.roundInputBalanceOf(0, account);
+            const ovenUserRound1InputBalance = await oven.roundInputBalanceOf(1, account);
+            const ovenInputTokenBalance = await inputToken.balanceOf(oven.address);
+            const roundsCount = await oven.getRoundsCount();
+            const userRoundsCount = await oven.getUserRoundsCount(account);
+
+            expect(ovenUserInputBalance).to.eq(depositAmount);
+            expect(ovenUserRound0OutputBalance).to.eq(depositAmount);
+            expect(ovenUserRound1OutputBalance).to.eq(0);
+            expect(ovenUserRound0InputBalance).to.eq(0);
+            expect(ovenUserRound1InputBalance).to.eq(depositAmount);
+            expect(ovenInputTokenBalance).to.eq(depositAmount);
+            expect(roundsCount).to.eq(2);
+            expect(userRoundsCount).to.eq(2);
+        });
     });
 
     describe("bake", async() => {
