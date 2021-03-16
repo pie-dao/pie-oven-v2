@@ -20,7 +20,7 @@ contract Oven is AccessControl {
   IERC20 immutable outputToken;
   IRecipe immutable recipe;
 
-  uint256 roundSize;
+  uint256 roundSizeInputAmount;
 
   struct Round {
     uint256 totalDeposited;
@@ -58,14 +58,14 @@ contract Oven is AccessControl {
     _;
   }
 
-  constructor(address _inputToken, address _outputToken, uint256 _roundSize, address _recipe) {
+  constructor(address _inputToken, address _outputToken, uint256 _roundSizeInputAmount, address _recipe) {
     require(_inputToken != address(0), "INPUT_TOKEN_ZERO");
     require(_outputToken != address(0), "OUTPUT_TOKEN_ZERO");
     require(_recipe != address(0), "RECIPE_ZERO");
     
     inputToken = IERC20(_inputToken);
     outputToken = IERC20(_outputToken);
-    roundSize = _roundSize;
+    roundSizeInputAmount = _roundSizeInputAmount;
     recipe = IRecipe(_recipe);
 
     // create first empty round
@@ -94,7 +94,7 @@ contract Oven is AccessControl {
   }
 
   function _depositTo(uint256 _amount, address _to) internal {
-    uint256 roundSize_ = roundSize; //gas saving
+    uint256 roundSizeInputAmount_ = roundSizeInputAmount; //gas saving
 
     uint256 currentRound = rounds.length - 1;
     uint256 deposited = 0;
@@ -113,7 +113,7 @@ contract Oven is AccessControl {
 
       Round storage round = rounds[currentRound];
 
-      uint256 roundDeposit = (_amount - deposited).min(roundSize_ - round.totalDeposited);
+      uint256 roundDeposit = (_amount - deposited).min(roundSizeInputAmount_ - round.totalDeposited);
 
       round.totalDeposited += roundDeposit;
       round.deposits[_to] += roundDeposit;
