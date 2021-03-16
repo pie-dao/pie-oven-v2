@@ -181,10 +181,14 @@ contract Oven is AccessControl {
     }
 
     if(inputAmount != 0) {
+      // handle rounding issues due to integer division inaccuracies
+      inputAmount = inputAmount.min(inputToken.balanceOf(address(this)));
       inputToken.safeTransfer(_to, inputAmount);
     }
     
     if(outputAmount != 0) {
+      // handle rounding issues due to integer division inaccuracies
+      outputAmount = outputAmount.min(outputToken.balanceOf(address(this)));
       outputToken.safeTransfer(_to, outputAmount);
     }
 

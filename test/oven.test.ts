@@ -390,6 +390,19 @@ describe("Oven", function() {
             expect(roundOutputBalanceAfter).to.eq(0);
             expect(outputTokenBalanceAfter).to.eq(outputTokenBalanceBefore.add(expectedAmount));
         });
+        
+        it("Withdraw math accuracy", async() => {
+            await recipe.setConversionRate(parseEther("0.5"));
+
+            const depositAmount = parseEther("2");
+            await oven.deposit(depositAmount); // deposit 2ETH
+            await oven.connect(signers[1]).deposit(parseEther("1")); // deposit 1ETH
+
+            await oven.bake("0x00", [0]); // bake round
+
+            await oven.connect(signers[1]).withdraw(2); // success
+            await oven.connect(signers[0]).withdraw(2); // error! revert ERC20: transfer amount exceeds balance
+        });
 
     });
 
