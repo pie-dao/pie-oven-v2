@@ -124,7 +124,7 @@ contract UniPieRecipe is IRecipe {
         pie.joinPool(_outputAmount);
     }
 
-    function swapUniOrSushi(address _inputToken, address _outputToken, uint256 _outputAmount) public {
+    function swapUniOrSushi(address _inputToken, address _outputToken, uint256 _outputAmount) internal {
         (uint256 inputAmount, DexChoice dex) = getBestPriceSushiUni(_inputToken, _outputToken, _outputAmount);
 
         address[] memory route = getRoute(_inputToken, _outputToken);
