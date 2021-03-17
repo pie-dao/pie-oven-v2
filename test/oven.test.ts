@@ -6,7 +6,7 @@ import { MockToken__factory } from "../typechain/factories/MockToken__factory";
 import { MockToken } from "../typechain/MockToken";
 import { Oven } from "../typechain/Oven";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
-import { parseEther } from "ethers/lib/utils";
+import { parseEther, parseUnits } from "ethers/lib/utils";
 import { constants } from "ethers";
 import { MockRecipe, MockRecipe__factory } from "../typechain";
 
@@ -54,6 +54,21 @@ describe("Oven", function() {
 
     beforeEach(async() => {
         await timeTraveler.revertSnapshot();
+    });
+
+    describe("constructor", async() => {
+        it("_inputToken zero address should fail", async() => {
+            const ovenFactory = new Oven__factory(signers[0]);
+            await expect(ovenFactory.deploy(constants.AddressZero, outputToken.address, roundSize, recipe.address)).to.be.revertedWith("INPUT_TOKEN_ZERO");
+        });
+        it("_ouputToken zero address should fail", async() => {
+            const ovenFactory = new Oven__factory(signers[0]);
+            await expect(ovenFactory.deploy(inputToken.address, constants.AddressZero, roundSize, recipe.address)).to.be.revertedWith("OUTPUT_TOKEN_ZERO");
+        });
+        it("_recipe zero address should fail", async() => {
+            const ovenFactory = new Oven__factory(signers[0]);
+            await expect(ovenFactory.deploy(inputToken.address, outputToken.address, roundSize, constants.AddressZero)).to.be.revertedWith("RECIPE_ZERO");
+        });
     });
 
     describe("deposit", async() => {
@@ -158,6 +173,31 @@ describe("Oven", function() {
             expect(userRoundsCount).to.eq(2);
         });
 
+        it("Depositing when the current round is already partially baked should create a new round", async() => {
+            const depositAmount = parseEther("1");
+
+            await oven.deposit(depositAmount);
+            await oven.bake("0x00", [0]);
+            await oven.deposit(depositAmount);
+
+            const ovenUserInputBalance = await oven.inputBalanceOf(account);
+            const ovenUserRound0OutputBalance = await oven.roundOutputBalanceOf(0, account);
+            const ovenUserRound1OutputBalance = await oven.roundOutputBalanceOf(1, account);
+            const ovenUserRound0InputBalance = await oven.roundInputBalanceOf(0, account);
+            const ovenUserRound1InputBalance = await oven.roundInputBalanceOf(1, account);
+            const ovenInputTokenBalance = await inputToken.balanceOf(oven.address);
+            const roundsCount = await oven.getRoundsCount();
+            const userRoundsCount = await oven.getUserRoundsCount(account);
+
+            expect(ovenUserInputBalance).to.eq(depositAmount);
+            expect(ovenUserRound0OutputBalance).to.eq(depositAmount);
+            expect(ovenUserRound1OutputBalance).to.eq(0);
+            expect(ovenUserRound0InputBalance).to.eq(0);
+            expect(ovenUserRound1InputBalance).to.eq(depositAmount);
+            expect(ovenInputTokenBalance).to.eq(depositAmount);
+            expect(roundsCount).to.eq(2);
+            expect(userRoundsCount).to.eq(2);
+        });
     });
 
     describe("bake", async() => {
@@ -364,6 +404,19 @@ describe("Oven", function() {
             expect(outputBalanceAfter).to.eq(0);
             expect(roundOutputBalanceAfter).to.eq(0);
             expect(outputTokenBalanceAfter).to.eq(outputTokenBalanceBefore.add(expectedAmount));
+        });
+        
+        it("Withdraw math accuracy", async() => {
+            await recipe.setConversionRate(parseEther("0.5"));
+
+            const depositAmount = parseEther("2");
+            await oven.deposit(depositAmount); // deposit 2ETH
+            await oven.connect(signers[1]).deposit(parseEther("1")); // deposit 1ETH
+
+            await oven.bake("0x00", [0]); // bake round
+
+            await oven.connect(signers[1]).withdraw(2); // success
+            await oven.connect(signers[0]).withdraw(2); // error! revert ERC20: transfer amount exceeds balance
         });
 
     });

@@ -15,6 +15,10 @@ contract MockRecipe is IRecipe {
         percentageBaked = _percentageBaked;
     }
 
+    function setConversionRate(uint256 _conversionRate) external {
+        conversionRate = _conversionRate;
+    }
+
     function bake(
         address _inputToken,
         address _outputToken,
