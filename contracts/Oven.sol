@@ -20,7 +20,7 @@ contract Oven is AccessControl {
   IERC20 immutable outputToken;
 
 
-  uint256 roundSizeInputAmount;
+  uint256 public roundSizeInputAmount;
   IRecipe public recipe;
 
 
@@ -268,8 +268,8 @@ contract Oven is AccessControl {
   }
 
   function setRoundSize(uint256 _roundSize) external onlyAdmin {
-    emit RoundSizeUpdate(roundSize, _roundSize);
-    roundSize = _roundSize;
+    emit RoundSizeUpdate(roundSizeInputAmount, _roundSize);
+    roundSizeInputAmount = _roundSize;
   }
 
   function setRecipe(address _recipe) external onlyAdmin {
