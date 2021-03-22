@@ -18,9 +18,11 @@ contract Oven is AccessControl {
 
   IERC20 immutable inputToken;
   IERC20 immutable outputToken;
-  IRecipe immutable recipe;
+
 
   uint256 roundSizeInputAmount;
+  IRecipe public recipe;
+
 
   struct Round {
     uint256 totalDeposited;
@@ -45,8 +47,10 @@ contract Oven is AccessControl {
 
   event Deposit(address indexed from, address indexed to, uint256 amount);
   event Withdraw(address indexed from, address indexed to, uint256 inputAmount, uint256 outputAmount);
-  event FeeReceiverUpdate(address indexed _previous, address indexed _new);
+  event FeeReceiverUpdate(address indexed previousReceiver, address indexed newReceiver);
   event FeeUpdate(uint256 previousFee, uint256 newFee);
+  event RecipeUpdate(address indexed oldRecipe, address indexed newRecipe);
+  event RoundSizeUpdate(uint256 oldRoundSize, uint256 newRoundSize);
 
   modifier onlyBaker() {
     require(hasRole(BAKER_ROLE, _msgSender()), "NOT_BAKER");
@@ -263,6 +267,24 @@ contract Oven is AccessControl {
     fee = _newFee;
   }
 
+  function setRoundSize(uint256 _roundSize) external onlyAdmin {
+    emit RoundSizeUpdate(roundSize, _roundSize);
+    roundSize = _roundSize;
+  }
+
+  function setRecipe(address _recipe) external onlyAdmin {
+    emit RecipeUpdate(address(recipe), _recipe);
+    recipe = IRecipe(_recipe);
+  }
+
+  function saveToken(address _token, address _to, uint256 _amount) external onlyAdmin {
+    IERC20(_token).transfer(_to, _amount);
+  }
+  
+  function saveEth(address payable _to, uint256 _amount) external onlyAdmin {
+    _to.call{value: _amount}("");
+  }
+
   function setFeeReceiver(address _feeReceiver) external onlyAdmin {
     emit FeeReceiverUpdate(feeReceiver, _feeReceiver);
     feeReceiver = _feeReceiver;
@@ -323,6 +345,24 @@ contract Oven is AccessControl {
 
   function getRoundsCount() external view returns(uint256) {
     return rounds.length;
+  }
+
+  // Gets all rounds. Might run out of gas after many rounds
+  function getRounds() external view returns (ViewRound[] memory) {
+    return getRoundsRange(0, rounds.length -1);
+  }
+
+  function getRoundsRange(uint256 _from, uint256 _to) public view returns(ViewRound[] memory) {
+    ViewRound[] memory result = new ViewRound[](_to - _from + 1);
+
+    for(uint256 i = _from; i <= _to; i ++) {
+      Round storage round = rounds[i];
+      result[i].totalDeposited = round.totalDeposited;
+      result[i].totalBakedInput = round.totalBakedInput;
+      result[i].totalOutput = round.totalOutput;
+    }
+
+    return result;
   }
 
 }
