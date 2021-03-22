@@ -10,10 +10,11 @@ import "../interfaces/IPieRegistry.sol";
 import "../interfaces/IPie.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 // import "hardhat/console.sol";
 
 
-contract UniPieRecipe is IRecipe, Context {
+contract UniPieRecipe is IRecipe, Ownable {
     using SafeERC20 for IERC20;
 
     IERC20 immutable WETH;
@@ -21,6 +22,16 @@ contract UniPieRecipe is IRecipe, Context {
     IUniRouter immutable sushiRouter;
     ILendingRegistry immutable lendingRegistry;
     IPieRegistry immutable pieRegistry;
+
+    event HopUpdated(address indexed _token, address indexed _hop);
+
+    // Adds a custom hop before reaching the destination token
+    mapping(address => CustomHop) public customHops;
+
+    struct CustomHop {
+        address hop;
+        // DexChoice dex;
+    }
 
     enum DexChoice {Uni, Sushi}
 
@@ -138,6 +149,22 @@ contract UniPieRecipe is IRecipe, Context {
 
         IERC20 _inputToken = IERC20(_inputToken);
 
+        CustomHop memory customHop = customHops[_outputToken];
+
+        if(address(_inputToken) == _outputToken) {
+            return;
+        }
+
+        if(customHop.hop != address(0)) {
+            (uint256 hopAmount,) = getBestPriceSushiUni(customHop.hop, _outputToken, _outputAmount);
+
+            //swap to intermediate hop first
+            swapUniOrSushi(address(_inputToken), customHop.hop, hopAmount);
+            swapUniOrSushi(customHop.hop, address(_inputToken), _outputAmount);
+
+            return;
+        }
+
         // sushi has the best price, buy there
         if(dex == DexChoice.Sushi) {
             _inputToken.approve(address(sushiRouter), 0);
@@ -151,10 +178,31 @@ contract UniPieRecipe is IRecipe, Context {
 
     }
 
-    function getPrice(address _inputToken, address _outputToken, uint256 _outputAmount) public returns(uint256)  {
+    function setCustomHop(address _token, address _hop) external onlyOwner {
+        customHops[_token] = CustomHop({
+            hop: _hop
+            // dex: _dex
+        });
+    }
 
+    function saveToken(address _token, address _to, uint256 _amount) external onlyOwner {
+        IERC20(_token).transfer(_to, _amount);
+    }
+  
+    function saveEth(address payable _to, uint256 _amount) external onlyOwner {
+        _to.call{value: _amount}("");
+    }
+
+    function getPrice(address _inputToken, address _outputToken, uint256 _outputAmount) public returns(uint256)  {
         if(_inputToken == _outputToken) {
             return _outputAmount;
+        }
+
+        CustomHop memory customHop = customHops[_outputToken];
+        if(customHop.hop != address(0)) {
+            //get price for hop
+            uint256 hopAmount = getPrice(customHop.hop, _outputToken, _outputAmount);
+            return getPrice(_inputToken, _outputToken, hopAmount);
         }
 
         address underlying = lendingRegistry.wrappedToUnderlying(_outputToken);

@@ -520,7 +520,7 @@ describe("Oven", function() {
             const targetRoundSize = parseEther("1000");
 
             await oven.setRoundSize(targetRoundSize);
-            const roundSize = await oven.roundSize();
+            const roundSize = await oven.roundSizeInputAmount();
 
             expect(roundSize).to.eq(targetRoundSize);
         });
