@@ -160,7 +160,7 @@ contract UniPieRecipe is IRecipe, Ownable {
 
             //swap to intermediate hop first
             swapUniOrSushi(address(_inputToken), customHop.hop, hopAmount);
-            swapUniOrSushi(customHop.hop, address(_inputToken), _outputAmount);
+            swapUniOrSushi(customHop.hop, _outputToken, _outputAmount);
 
             return;
         }
