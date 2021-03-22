@@ -47,8 +47,10 @@ contract Oven is AccessControl {
 
   event Deposit(address indexed from, address indexed to, uint256 amount);
   event Withdraw(address indexed from, address indexed to, uint256 inputAmount, uint256 outputAmount);
-  event FeeReceiverUpdate(address indexed _previous, address indexed _new);
+  event FeeReceiverUpdate(address indexed previousReceiver, address indexed newReceiver);
   event FeeUpdate(uint256 previousFee, uint256 newFee);
+  event RecipeUpdate(address indexed oldRecipe, address indexed newRecipe);
+  event RoundSizeUpdate(uint256 oldRoundSize, uint256 newRoundSize);
 
   modifier onlyBaker() {
     require(hasRole(BAKER_ROLE, _msgSender()), "NOT_BAKER");
@@ -266,13 +268,13 @@ contract Oven is AccessControl {
   }
 
   function setRoundSize(uint256 _roundSize) external onlyAdmin {
+    emit RoundSizeUpdate(roundSize, _roundSize);
     roundSize = _roundSize;
-    // TODO event
   }
 
   function setRecipe(address _recipe) external onlyAdmin {
+    emit RecipeUpdate(address(recipe), _recipe);
     recipe = IRecipe(_recipe);
-    // TODO event
   }
 
   function saveToken(address _token, address _to, uint256 _amount) external onlyAdmin {
