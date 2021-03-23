@@ -9,6 +9,7 @@ import "hardhat-watcher";
 import "solidity-coverage";
 import "hardhat-gas-reporter";
 
+// TODO fix fresh compilation inssue without commenting this line
 import "./tasks/deploy";
 
 // This is a sample Hardhat task. To learn how to create your own go to
@@ -37,6 +38,19 @@ const config:HardhatUserConfig = {
     bsc: {
       url: `https://bsc-dataseed.binance.org/`,
       accounts: [process.env.PRIVATE_KEY || ""],
+    },
+    ropsten: {
+      url: `https://ropsten.infura.io/v3/ffa6c1dc83e44e6c9971d4706311d5ab`,
+      accounts: [process.env.PRIVATE_KEY || ""],
+      blockGasLimit: 6000000,
+      gasPrice: 10000000000,
+      gas: 6000000
+    },
+    mainnet: { 
+      url: `https://mainnet.infura.io/v3/ffa6c1dc83e44e6c9971d4706311d5ab`,
+      accounts: [process.env.PRIVATE_KEY || ""],
+      gas: 6000000,
+      gasPrice: 150000000000
     }
   },
   typechain: {

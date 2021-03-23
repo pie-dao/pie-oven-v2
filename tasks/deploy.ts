@@ -35,11 +35,14 @@ task("deploy-eth-oven")
     // address _recipe
     const signers = await ethers.getSigners();
 
+    console.log("Deploying from: ", await signers[0].address);
+
     const oven = await (new EthOven__factory(signers[0])).deploy(
         taskArgs.weth,
         taskArgs.outputToken,
         parseEther(taskArgs.roundSize.toString()),
-        taskArgs.recipe
+        taskArgs.recipe,
+        {gasLimit: 8000000}
     );
 
     console.log(`Oven deployed at: ${oven.address}`);
