@@ -274,7 +274,14 @@ contract Oven is AccessControl {
 
   function setRecipe(address _recipe) external onlyAdmin {
     emit RecipeUpdate(address(recipe), _recipe);
+    
+    //revoke old approval
+    inputToken.approve(address(recipe), 0);
+
     recipe = IRecipe(_recipe);
+
+    //set new approval
+    inputToken.approve(address(recipe), type(uint256).max);
   }
 
   function saveToken(address _token, address _to, uint256 _amount) external onlyAdmin {
