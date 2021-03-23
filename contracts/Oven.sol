@@ -16,8 +16,8 @@ contract Oven is AccessControl {
   bytes32 constant public BAKER_ROLE = keccak256(abi.encode("BAKER_ROLE"));
   uint256 constant public MAX_FEE = 10 * 10**16; //10%
 
-  IERC20 immutable inputToken;
-  IERC20 immutable outputToken;
+  IERC20 public immutable inputToken;
+  IERC20 public immutable outputToken;
 
 
   uint256 public roundSizeInputAmount;
