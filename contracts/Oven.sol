@@ -16,8 +16,8 @@ contract Oven is AccessControl {
   bytes32 constant public BAKER_ROLE = keccak256(abi.encode("BAKER_ROLE"));
   uint256 constant public MAX_FEE = 10 * 10**16; //10%
 
-  IERC20 public immutable inputToken;
-  IERC20 public immutable outputToken;
+  IERC20 public inputToken;
+  IERC20 public outputToken;
 
 
   uint256 public roundSizeInputAmount;
@@ -62,7 +62,9 @@ contract Oven is AccessControl {
     _;
   }
 
-  constructor(address _inputToken, address _outputToken, uint256 _roundSizeInputAmount, address _recipe) {
+  function initialize(address _inputToken, address _outputToken, uint256 _roundSizeInputAmount, address _recipe) external {
+    require(address(inputToken) == address(0), "Oven.initializer: Already initialized");
+    
     require(_inputToken != address(0), "INPUT_TOKEN_ZERO");
     require(_outputToken != address(0), "OUTPUT_TOKEN_ZERO");
     require(_recipe != address(0), "RECIPE_ZERO");
@@ -276,12 +278,16 @@ contract Oven is AccessControl {
     emit RecipeUpdate(address(recipe), _recipe);
     
     //revoke old approval
-    inputToken.approve(address(recipe), 0);
+    if(address(recipe) != address(0)) {
+      inputToken.approve(address(recipe), 0);
+    }
 
     recipe = IRecipe(_recipe);
 
     //set new approval
-    inputToken.approve(address(recipe), type(uint256).max);
+    if(address(recipe) != address(0)) {
+      inputToken.approve(address(recipe), type(uint256).max);
+    }
   }
 
   function saveToken(address _token, address _to, uint256 _amount) external onlyAdmin {

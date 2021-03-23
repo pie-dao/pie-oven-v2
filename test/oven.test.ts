@@ -44,7 +44,8 @@ describe("Oven", function() {
         recipe = await (new MockRecipe__factory(signers[0])).deploy();
 
         // TODO consider deploying diffrently if coverage does not work
-        oven = await (new EthOven__factory(signers[0])).deploy(inputToken.address, outputToken.address, roundSize, recipe.address) as unknown as EthOven;
+        oven = await (new EthOven__factory(signers[0])).deploy() as unknown as EthOven;
+        await oven.initialize(inputToken.address, outputToken.address, roundSize, recipe.address);
 
         // approvals
         await inputToken.approve(oven.address, constants.MaxUint256);
@@ -57,18 +58,21 @@ describe("Oven", function() {
         await timeTraveler.revertSnapshot();
     });
 
-    describe("constructor", async() => {
+    describe("Initializer", async() => {
+        let oven: EthOven;
+
+        beforeEach(async() => {
+            oven = await (new EthOven__factory(signers[0])).deploy();
+        });
+
         it("_inputToken zero address should fail", async() => {
-            const ovenFactory = new EthOven__factory(signers[0]);
-            await expect(ovenFactory.deploy(constants.AddressZero, outputToken.address, roundSize, recipe.address)).to.be.revertedWith("INPUT_TOKEN_ZERO");
+            await expect(oven.initialize(constants.AddressZero, outputToken.address, roundSize, recipe.address)).to.be.revertedWith("INPUT_TOKEN_ZERO");
         });
         it("_ouputToken zero address should fail", async() => {
-            const ovenFactory = new EthOven__factory(signers[0]);
-            await expect(ovenFactory.deploy(inputToken.address, constants.AddressZero, roundSize, recipe.address)).to.be.revertedWith("OUTPUT_TOKEN_ZERO");
+            await expect(oven.initialize(inputToken.address, constants.AddressZero, roundSize, recipe.address)).to.be.revertedWith("OUTPUT_TOKEN_ZERO");
         });
         it("_recipe zero address should fail", async() => {
-            const ovenFactory = new EthOven__factory(signers[0]);
-            await expect(ovenFactory.deploy(inputToken.address, outputToken.address, roundSize, constants.AddressZero)).to.be.revertedWith("RECIPE_ZERO");
+            await expect(oven.initialize(inputToken.address, outputToken.address, roundSize, constants.AddressZero)).to.be.revertedWith("RECIPE_ZERO");
         });
     });
 

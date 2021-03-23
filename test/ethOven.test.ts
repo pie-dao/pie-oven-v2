@@ -43,7 +43,9 @@ describe("EthOven", function() {
         recipe = await (new MockRecipe__factory(signers[0])).deploy();
 
         // TODO consider deploying diffrently if coverage does not work
-        oven = await (new EthOven__factory(signers[0])).deploy(inputToken.address, outputToken.address, roundSize, recipe.address) as unknown as EthOven;
+        oven = await (new EthOven__factory(signers[0])).deploy() as unknown as EthOven;
+
+        await oven.initialize(inputToken.address, outputToken.address, roundSize, recipe.address);
 
         // approvals
         await inputToken.approve(oven.address, constants.MaxUint256);

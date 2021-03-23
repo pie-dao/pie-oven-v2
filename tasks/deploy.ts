@@ -37,7 +37,9 @@ task("deploy-eth-oven")
 
     console.log("Deploying from: ", await signers[0].address);
 
-    const oven = await (new EthOven__factory(signers[0])).deploy(
+    const oven = await (new EthOven__factory(signers[0])).deploy();
+
+    await oven.initialize(
         taskArgs.weth,
         taskArgs.outputToken,
         parseEther(taskArgs.roundSize.toString()),
