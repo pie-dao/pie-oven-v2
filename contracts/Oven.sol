@@ -160,8 +160,7 @@ contract Oven is AccessControl {
 
     for(uint256 i = 0; i < numRounds; i ++) {
       // start at end of array for efficient popping of elements
-      uint256 roundIndex = userRoundsLength - i - 1;
-
+      uint256 roundIndex = userRounds[_msgSender()][userRoundsLength - i - 1];
       Round storage round = rounds[roundIndex];
 
       //amount of input of user baked
