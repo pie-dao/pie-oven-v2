@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "./interfaces/IRecipe.sol"; 
+import "./interfaces/IRecipe.sol";
 
 
 contract Oven is AccessControl {
@@ -126,7 +126,10 @@ contract Oven is AccessControl {
 
       deposited += roundDeposit;
 
-      pushUserRound(_to, currentRound);
+      // only push rounds we are actually in
+      if(roundDeposit != 0) {
+        pushUserRound(_to, currentRound);
+      }
 
       // if full amount assigned to rounds break the loop
       if(deposited == _amount) {
