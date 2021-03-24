@@ -431,7 +431,7 @@ describe("Oven", function() {
             const inputTokenBalanceBefore = await inputToken.balanceOf(account2);
             const outputTokenBalanceBefore = await outputToken.balanceOf(account2);
 
-            await oven2.deposit(roundSize);
+            await oven2.deposit(roundSize); 
             await oven2.withdraw(constants.MaxUint256);
 
             const inputBalanceAfter = await oven.inputBalanceOf(account2);

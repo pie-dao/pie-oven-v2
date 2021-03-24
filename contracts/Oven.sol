@@ -100,6 +100,11 @@ contract Oven is AccessControl {
   }
 
   function _depositTo(uint256 _amount, address _to) internal {
+    // if amount is zero return early
+    if(_amount == 0) {
+      return;
+    }
+
     uint256 roundSizeInputAmount_ = roundSizeInputAmount; //gas saving
 
     uint256 currentRound = rounds.length - 1;
