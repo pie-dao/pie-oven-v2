@@ -49,3 +49,19 @@ task("deploy-eth-oven")
 
     console.log(`Oven deployed at: ${oven.address}`);
 });
+
+task("deploy-recipe", async(taskArgs, {ethers}) => {
+    const signers = await ethers.getSigners();
+
+    console.log(signers[0].address);
+
+    const recipe = await (new UniPieRecipe__factory(signers[0])).deploy(
+        "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
+        "0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F",
+        "0x9a607dd7Da5fdABf4f53f73a476D99F68172C36D",
+        "0x412a5d5eC35fF185D6BfF32a367a985e1FB7c296"
+    );
+
+    console.log(`Recipe deployed at: ${recipe.address}`);
+})
