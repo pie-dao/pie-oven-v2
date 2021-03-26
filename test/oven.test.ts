@@ -424,6 +424,31 @@ describe("Oven", function() {
             await oven.connect(signers[0]).withdraw(2); // error! revert ERC20: transfer amount exceeds balance
         });
 
+        it("Withdraw should work when depositing into a second round from a diffrent address", async() => {
+            await oven.deposit(roundSize.add(1));
+            const oven2 = oven.connect(signers[1]);
+
+            const inputTokenBalanceBefore = await inputToken.balanceOf(account2);
+            const outputTokenBalanceBefore = await outputToken.balanceOf(account2);
+
+            await oven2.deposit(roundSize); 
+            await oven2.withdraw(constants.MaxUint256);
+
+            const inputBalanceAfter = await oven.inputBalanceOf(account2);
+            const roundInputBalanceAfter = await oven.roundInputBalanceOf(1, account2);
+            const inputTokenBalanceAfter = await inputToken.balanceOf(account2);
+            const outputBalanceAfter = await oven.outputBalanceOf(account2);
+            const roundOutputBalanceAfter = await oven.roundOutputBalanceOf(1, account2);
+            const outputTokenBalanceAfter = await outputToken.balanceOf(account2);
+
+            expect(inputBalanceAfter).to.eq(0);
+            expect(roundInputBalanceAfter).to.eq(0);
+            expect(inputTokenBalanceAfter).to.eq(inputTokenBalanceBefore);
+            expect(outputBalanceAfter).to.eq(0);
+            expect(roundOutputBalanceAfter).to.eq(0);
+            expect(outputTokenBalanceAfter).to.eq(outputTokenBalanceBefore);
+        });
+
     });
 
     describe("Fees", async() => {

@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "./interfaces/IRecipe.sol"; 
+import "./interfaces/IRecipe.sol";
 
 
 contract Oven is AccessControl {
@@ -100,6 +100,11 @@ contract Oven is AccessControl {
   }
 
   function _depositTo(uint256 _amount, address _to) internal {
+    // if amount is zero return early
+    if(_amount == 0) {
+      return;
+    }
+
     uint256 roundSizeInputAmount_ = roundSizeInputAmount; //gas saving
 
     uint256 currentRound = rounds.length - 1;
@@ -126,7 +131,10 @@ contract Oven is AccessControl {
 
       deposited += roundDeposit;
 
-      pushUserRound(_to, currentRound);
+      // only push rounds we are actually in
+      if(roundDeposit != 0) {
+        pushUserRound(_to, currentRound);
+      }
 
       // if full amount assigned to rounds break the loop
       if(deposited == _amount) {
@@ -160,8 +168,7 @@ contract Oven is AccessControl {
 
     for(uint256 i = 0; i < numRounds; i ++) {
       // start at end of array for efficient popping of elements
-      uint256 roundIndex = userRoundsLength - i - 1;
-
+      uint256 roundIndex = userRounds[_msgSender()][userRoundsLength - i - 1];
       Round storage round = rounds[roundIndex];
 
       //amount of input of user baked
