@@ -109,7 +109,7 @@ contract UniPieRecipe is IRecipe, Ownable {
         if(underlying != address(0)) {
             // calc amount according to exchange rate
             ILendingLogic lendingLogic = getLendingLogicFromWrapped(_outputToken);
-            uint256 exchangeRate = lendingLogic.exchangeRate(_outputToken) + 1; // wrapped to underlying
+            uint256 exchangeRate = lendingLogic.exchangeRate(_outputToken); // wrapped to underlying
             uint256 underlyingAmount = _outputAmount * exchangeRate / (10**18) + 1;
 
             swap(_inputToken, underlying, underlyingAmount);
@@ -209,7 +209,7 @@ contract UniPieRecipe is IRecipe, Ownable {
         if(underlying != address(0)) {
             // calc amount according to exchange rate
             ILendingLogic lendingLogic = getLendingLogicFromWrapped(_outputToken);
-            uint256 exchangeRate = lendingLogic.exchangeRate(_outputToken) + 1; // wrapped to underlying
+            uint256 exchangeRate = lendingLogic.exchangeRate(_outputToken); // wrapped to underlying
             uint256 underlyingAmount = _outputAmount * exchangeRate / (10**18) + 1;
 
             return getPrice(_inputToken, underlying, underlyingAmount);
