@@ -7,7 +7,7 @@ import { UniPieRecipe__factory } from "../typechain/factories/UniPieRecipe__fact
 
 const WETH = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 // const YPIE = "0x17525e4f4af59fbc29551bc4ece6ab60ed49ce31";
-const YPIE = "0x33e18a092a93ff21ad04746c7da12e35d34dc7c4"; //actually BCP
+const PIE = "0x33e18a092a93ff21ad04746c7da12e35d34dc7c4"; //actually BCP
 // const YPIE = "0x8d1ce361eb68e9e05573443c407d4a3bed23b033"; //actually DEFI++
 const DAI = "0x6b175474e89094c44da98b954eedeac495271d0f";
 
@@ -34,17 +34,17 @@ const main = async () => {
 
     console.log(`Recipe deployed at: ${recipe.address}`);
 
-    const price = await recipe.callStatic.getPrice(WETH, YPIE, parseEther("1"));
+    const price = await recipe.callStatic.getPrice(WETH, PIE, parseEther("1"));
 
     const ethAmount = parseEther("40");
     const data = await recipe.encodeData(ethAmount.mul(parseEther("1")).div(price));
 
     const inputToken = IERC20__factory.connect(WETH, signer);
-    const outputToken = IERC20__factory.connect(YPIE, signer);
+    const outputToken = IERC20__factory.connect(PIE, signer);
 
     await inputToken.approve(recipe.address, constants.MaxUint256);
 
-    const tx = await recipe.bake(WETH, YPIE, ethAmount.mul(105).div(100), data);
+    const tx = await recipe.bake(WETH, PIE, ethAmount.mul(105).div(100), data);
 
     // console.log(tx);
 
