@@ -33,24 +33,24 @@ const main = async () => {
     let totalInputWithdraw = BigNumber.from(0);
     let totalOutputWithdraw = BigNumber.from(0);
 
-    // @ts-ignore
-    events.map((event: any) => {
-        console.log(event);
-        // @ts-ignore
-        totalInputWithdraw = totalInputWithdraw.add(event.args.inputAmount);
-        // @ts-ignore
-        totalOutputWithdraw = totalOutputWithdraw.add(event.args.outputAmount);
-    })
+    // // @ts-ignore
+    // events.map((event: any) => {
+    //     console.log(event);
+    //     // @ts-ignore
+    //     totalInputWithdraw = totalInputWithdraw.add(event.args.inputAmount);
+    //     // @ts-ignore
+    //     totalOutputWithdraw = totalOutputWithdraw.add(event.args.outputAmount);
+    // })
 
-    console.log("total input withdraw", totalInputWithdraw.toString());
-    console.log("total outputwithdraw", totalOutputWithdraw.toString());
+    // console.log("total input withdraw", totalInputWithdraw.toString());
+    // console.log("total outputwithdraw", totalOutputWithdraw.toString());
 
     // console.log(rounds);
-    console.log("WETH balance", wethBalance.toString());
+    // console.log("WETH balance", wethBalance.toString());
     console.log("Total Deposited", totalDeposit.toString());
     console.log("total baked input", totalBaked.toString());
     console.log("Net", totalDeposit.sub(totalBaked).toString());
-    console.log("Diff", wethBalance.sub(totalDeposit.sub(totalBaked)).toString());
+    // console.log("Diff", wethBalance.sub(totalDeposit.sub(totalBaked)).toString());
 
 }
 

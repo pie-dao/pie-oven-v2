@@ -19,18 +19,16 @@ const main = async () => {
         params: [FROM]}
     )
 
-    const signer = ethers.provider.getSigner(FROM);
-    const recipe = await (new UniPieRecipe__factory(signer)).deploy(
-        "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-        "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
-        "0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F",
-        "0x9a607dd7Da5fdABf4f53f73a476D99F68172C36D",
-        "0x412a5d5eC35fF185D6BfF32a367a985e1FB7c296"
-    );
-
-    // const recipe = new UniPieRecipe__factory(signer).attach("0x6Ec0C6373c40293C7d81dC8B8AE73A503f7a1fd2");
-
-    
+    // const signer = ethers.provider.getSigner(FROM);
+    const signer = (await ethers.getSigners())[0];
+    // const recipe = await (new UniPieRecipe__factory(signer)).deploy(
+    //     "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+    //     "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
+    //     "0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F",
+    //     "0x9a607dd7Da5fdABf4f53f73a476D99F68172C36D",
+    //     "0x412a5d5eC35fF185D6BfF32a367a985e1FB7c296"
+    // );
+    const recipe = await (new UniPieRecipe__factory(signer)).attach("0x1AF4f5113FD55360E45C6E9E05Cf2C9918Bfe6A1");
 
     console.log(`Recipe deployed at: ${recipe.address}`);
 
@@ -50,7 +48,7 @@ const main = async () => {
 
     console.log(price.toString());
 
-    const wATRI = IERC20__factory.connect("0xf037f37f58110933834ca64545e4ffd169736561", signer);
+    const wATRI = IERC20__factory.connect("0x1AF4f5113FD55360E45C6E9E05Cf2C9918Bfe6A1", signer);
 
     const wATRIBalance = await wATRI.balanceOf(recipe.address);
     console.log(wATRIBalance.toString());
