@@ -48,7 +48,7 @@ const main = async () => {
 
     console.log(price.toString());
 
-    const wATRI = IERC20__factory.connect("0x1AF4f5113FD55360E45C6E9E05Cf2C9918Bfe6A1", signer);
+    const wATRI = IERC20__factory.connect("0xf037f37f58110933834ca64545e4ffd169736561", signer);
 
     const wATRIBalance = await wATRI.balanceOf(recipe.address);
     console.log(wATRIBalance.toString());

@@ -33,7 +33,8 @@ const config:HardhatUserConfig = {
   networks: {
     fork: {
       url: `http://127.0.0.1:8545/`,
-      timeout: 200000
+      timeout: 200000,
+      gasPrice: 0
     },
     bsc: {
       url: `https://bsc-dataseed.binance.org/`,

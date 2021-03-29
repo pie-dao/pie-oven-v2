@@ -68,20 +68,24 @@ contract UniPieRecipe is IRecipe, Ownable {
 
         (uint256 mintAmount) = abi.decode(_data, (uint256));
 
-        swap(_inputToken, _outputToken, mintAmount);
+        outputAmount = _bake(_inputToken, _outputToken, _maxInput, mintAmount);
 
         uint256 remainingInputBalance = inputToken.balanceOf(address(this));
         if(remainingInputBalance > 0) {
             inputToken.transfer(_msgSender(), remainingInputBalance);
         }
 
-        outputAmount = outputToken.balanceOf(address(this));
-
-        outputToken.safeTransfer(_msgSender(), outputAmount);
-
-        inputAmountUsed = _maxInput - remainingInputBalance;
+        outputToken.safeTransfer(_msgSender(), outputAmount);  
 
         return(inputAmountUsed, outputAmount);
+    }
+
+    function _bake(address _inputToken, address _outputToken, uint256 _maxInput, uint256 _mintAmount) internal returns(uint256 outputAmount) {
+        swap(_inputToken, _outputToken, _mintAmount);
+
+        outputAmount = IERC20(_outputToken).balanceOf(address(this));
+
+        return(outputAmount);
     }
 
     function swap(address _inputToken, address _outputToken, uint256 _outputAmount) internal {
