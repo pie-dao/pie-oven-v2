@@ -278,7 +278,6 @@ contract UniPieRecipe is IRecipe, Ownable {
             return(_outputAmount);
         }
         
-        // TODO this IS an external call but somehow the compiler does not recognize it as such :(
         try _router.getAmountsIn(_outputAmount, getRoute(_inputToken, _outputToken)) returns(uint256[] memory amounts) {
             return amounts[0];
         } catch {

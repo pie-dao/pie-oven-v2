@@ -62,6 +62,7 @@ const main = async () => {
     console.log(wATRIBalance.toString());
 
     console.log("mint amount", utils.formatEther(mintAmount));
+    console.log("calculated spend", utils.formatEther(await recipe.callStatic.calcToPie(PIE, mintAmount)))
 
     const outputBalanceAfter = await outputToken.balanceOf(FROM);
 
