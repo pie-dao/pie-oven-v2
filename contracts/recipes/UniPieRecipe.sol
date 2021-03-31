@@ -202,12 +202,12 @@ contract UniPieRecipe is IRecipe, Ownable {
             return _outputAmount;
         }
 
-        CustomHop memory customHop = customHops[_outputToken];
-        if(customHop.hop != address(0)) {
-            //get price for hop
-            uint256 hopAmount = getPrice(customHop.hop, _outputToken, _outputAmount);
-            return getPrice(_inputToken, _outputToken, hopAmount);
-        }
+        // CustomHop memory customHop = customHops[_outputToken];
+        // if(customHop.hop != address(0)) {
+        //     //get price for hop
+        //     uint256 hopAmount = getPrice(customHop.hop, _outputToken, _outputAmount);
+        //     return getPrice(_inputToken, _outputToken, hopAmount);
+        // }
 
         address underlying = lendingRegistry.wrappedToUnderlying(_outputToken);
         if(underlying != address(0)) {

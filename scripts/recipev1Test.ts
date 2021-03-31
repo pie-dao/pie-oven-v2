@@ -6,7 +6,9 @@ import { IERC20__factory } from "../typechain";
 import { V1CompatibleRecipe__factory } from "../typechain/factories/V1CompatibleRecipe__factory";
 
 const WETH = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
-const PIE = "0x33e18a092a93ff21ad04746c7da12e35d34dc7c4";
+// const PIE = "0x33e18a092a93ff21ad04746c7da12e35d34dc7c4";
+const PIE = "0xad6a626ae2b43dcb1b39430ce496d2fa0365ba9c"; //defi+s
+
 const DAI = "0x6b175474e89094c44da98b954eedeac495271d0f";
 
 const FROM = "0x0f4ee9631f4be0a63756515141281a3e2b293bbe";

@@ -4,7 +4,6 @@ pragma experimental ABIEncoderV2;
 
 import "./UniPieRecipe.sol";
 import "../interfaces/IWETH.sol";
-import "hardhat/console.sol";
 
 contract V1CompatibleRecipe is UniPieRecipe {
     using SafeERC20 for IERC20;
@@ -19,6 +18,9 @@ contract V1CompatibleRecipe is UniPieRecipe {
     }
 
     function toPie(address _pie, uint256 _outputAmount) external payable {
+        uint256 calculatedSpend = getPrice(address(WETH), _pie, _outputAmount);
+        // console.log("calculated spend", calculatedSpend);
+
         // convert to WETH
         address(WETH).call{value: msg.value}("");
         
@@ -31,8 +33,8 @@ contract V1CompatibleRecipe is UniPieRecipe {
         // if any WETH left convert it into ETH and send it back
         uint256 wethBalance = WETH.balanceOf(address(this));
         if(wethBalance != 0) {
-            console.log("returning WETH");
-            console.log(wethBalance);
+            // console.log("returning WETH");
+            // console.log(wethBalance);
             IWETH(address(WETH)).withdraw(wethBalance);
             payable(msg.sender).transfer(wethBalance);
         }
