@@ -8,9 +8,14 @@ import "../interfaces/ILendingRegistry.sol";
 import "../interfaces/ILendingLogic.sol";
 import "../interfaces/IPieRegistry.sol";
 import "../interfaces/IPie.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
+import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
+import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
+import "@uniswap/v3-periphery/contracts/libraries/OracleLibrary.sol";
 // import "hardhat/console.sol";
 
 
@@ -20,6 +25,8 @@ contract UniPieRecipe is IRecipe, Ownable {
     IERC20 immutable WETH;
     IUniRouter immutable uniRouter;
     IUniRouter immutable sushiRouter;
+    ISwapRouter immutable uniV3SwapRouter;
+    IUniV3Factory immutable uniV3Factory;
     ILendingRegistry immutable lendingRegistry;
     IPieRegistry immutable pieRegistry;
 
@@ -33,12 +40,14 @@ contract UniPieRecipe is IRecipe, Ownable {
         // DexChoice dex;
     }
 
-    enum DexChoice {Uni, Sushi}
+    enum DexChoice {UniV2, UniV3, Sushi}
 
     constructor(
         address _weth,
         address _uniRouter,
         address _sushiRouter,
+        address _uniV3Factory,
+        address _uniV3SwapRouter,
         address _lendingRegistry,
         address _pieRegistry
     ) { 
@@ -53,6 +62,8 @@ contract UniPieRecipe is IRecipe, Ownable {
         sushiRouter = IUniRouter(_sushiRouter);
         lendingRegistry = ILendingRegistry(_lendingRegistry);
         pieRegistry = IPieRegistry(_pieRegistry);
+        uniV3Factory = IUniswapV3Factory(_uniV3Factory);
+        uniV3SwapRouter = ISwapRouter(_uniV3SwapRouter);
     }
 
     function bake(
@@ -170,10 +181,20 @@ contract UniPieRecipe is IRecipe, Ownable {
             _inputToken.approve(address(sushiRouter), 0);
             _inputToken.approve(address(sushiRouter), type(uint256).max);
             sushiRouter.swapTokensForExactTokens(_outputAmount, type(uint256).max, route, address(this), block.timestamp + 1);
-        } else {
+        } else if(dex == DexChoice.UniV2) {
             _inputToken.approve(address(uniRouter), 0);
             _inputToken.approve(address(uniRouter), type(uint256).max);
             uniRouter.swapTokensForExactTokens(_outputAmount, type(uint256).max, route, address(this), block.timestamp + 1);
+        } else {
+            _inputToken.approve(address(uniV3SwapRouter), 0);
+            _inputToken.approve(address(uniV3SwapRouter), type(uint256).max);
+            uniV3SwapRouter.exactOutput(ExactOutputParams({
+                path: abi.encodePacked(_inputToken, 500, _outputToken),
+                recipient: address(this),
+                deadline: block.timestamp + 1,
+                amountOut: _outputAmount,
+                amountInMaximum: type(uint256).max
+            }));
         }
 
     }
@@ -244,12 +265,21 @@ contract UniPieRecipe is IRecipe, Ownable {
     function getBestPriceSushiUni(address _inputToken, address _outputToken, uint256 _outputAmount) internal returns(uint256, DexChoice) {
         uint256 sushiAmount = getPriceUniLike(_inputToken, _outputToken, _outputAmount, sushiRouter);
         uint256 uniAmount = getPriceUniLike(_inputToken, _outputToken, _outputAmount, uniRouter);
+        uint256 uniV3Amount = getPriceUniV3Like(_inputToken, _outputToken, _outputAmount, 500); // 0.05% fee pool
 
         if(uniAmount < sushiAmount) {
-            return (uniAmount, DexChoice.Uni);
+            if(uniV3Amount < uniAmount) {
+                return (uniV3Amount, DexChoice.UniV3);
+            } else {
+                return (uniAmount, DexChoice.UniV2);
+            }
+        } else {
+            if(uniV3Amount < sushiAmount) {
+                return (uniV3Amount, DexChoice.UniV3);
+            } else {
+                return (sushiAmount, DexChoice.Sushi);
+            }
         }
-
-        return (sushiAmount, DexChoice.Sushi);
     }
 
     function getRoute(address _inputToken, address _outputToken) internal returns(address[] memory route) {
@@ -280,6 +310,23 @@ contract UniPieRecipe is IRecipe, Ownable {
         } catch {
             return type(uint256).max;
         }
+    }
+
+    function getPriceUniV3Like(
+        address _inputToken,
+        address _outputToken,
+        uint256 _outputAmount,
+        uint24 _fee
+    ) internal returns (uint256) {
+        if(_inputToken == _outputToken) {
+            return(_outputAmount);
+        }
+
+        address pool = uniV3Factory.getPool(_inputToken, _outputToken, _fee);    // Fee 0.05%
+        (int24 tick, ) = OracleLibrary.consult(address(pool), 10 minutes);
+        uint inputTokenUnit = 10**IERC20(_inputToken).decimals();
+        uint256 quoteAmount = OracleLibrary.getQuoteAtTick(tick, uint128(inputTokenUnit), _inputToken, _outputToken);
+        return inputTokenUnit.mul(_outputAmount).div(quoteAmount);
     }
 
     // NOTE input token must be WETH
