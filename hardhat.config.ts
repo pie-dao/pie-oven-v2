@@ -14,7 +14,7 @@ import "./tasks/deploy";
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
-task("accounts", "Prints the list of accounts", async (taskArgs, {ethers}) => {
+task("accounts", "Prints the list of accounts", async (taskArgs, { ethers }) => {
   const accounts = await ethers.getSigners();
 
   for (const account of accounts) {
@@ -28,7 +28,7 @@ task("accounts", "Prints the list of accounts", async (taskArgs, {ethers}) => {
 /**
  * @type import('hardhat/config').HardhatUserConfig
  */
-const config:HardhatUserConfig = {
+const config: HardhatUserConfig = {
   solidity: "0.8.1",
   networks: {
     fork: {
@@ -46,7 +46,7 @@ const config:HardhatUserConfig = {
       gasPrice: 10000000000,
       gas: 6000000
     },
-    mainnet: { 
+    mainnet: {
       url: `https://mainnet.infura.io/v3/ffa6c1dc83e44e6c9971d4706311d5ab`,
       accounts: [process.env.PRIVATE_KEY || ""],
       gas: 6000000,
